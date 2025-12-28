@@ -1,7 +1,7 @@
 " NeoVim Configuration
 " by Wesley J. Landaker
 "
-" Version 2.0.2
+" Version 2.1.0
 "
 " This work is marked with CC0 1.0. To view a copy of this license, visit
 " https://creativecommons.org/publicdomain/zero/1.0/
@@ -304,6 +304,14 @@ set nosmarttab
 " Automatically indent after a newline by copying previous indent.
 set autoindent
 set copyindent
+
+" Reset indenting even when other filetypes try to change things.
+augroup F
+	au!
+	autocmd FileType * setlocal noexpandtab
+	autocmd FileType * setlocal tabstop=4
+	autocmd FileType * setlocal shiftwidth=4
+augroup END
 
 "}}}------------
 "--- Folding {{{

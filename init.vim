@@ -1,7 +1,7 @@
 " NeoVim Configuration
 " by Wesley J. Landaker
 "
-" Version 2.1.0
+" Version 2.2.0
 "
 " This work is marked with CC0 1.0. To view a copy of this license, visit
 " https://creativecommons.org/publicdomain/zero/1.0/
@@ -14,12 +14,6 @@
 
 " Activate vim-plug plugins.
 call plug#begin()
-
-" Very good default light and dark color schemes.
-Plug 'NLKNguyen/papercolor-theme'
-
-" Huge selection of alternate color schemes.
-Plug 'flazz/vim-colorschemes'
 
 " Lightweight statusline configurator.
 Plug 'itchyny/lightline.vim'
@@ -47,6 +41,9 @@ Plug 'Jorengarenar/vim-syntaxMarkerFold'
 
 " Transparent editing of gpg-encrypted files.
 Plug 'jamessan/vim-gnupg'
+
+" Incremental semantic language parsing 
+Plug 'nvim-treesitter/nvim-treesitter'
 
 call plug#end()
 
@@ -429,17 +426,26 @@ cnoremap <expr> <down>  wildmenumode() ? "\<right>" : "\<down>"
 cnoremap <expr> <left>  wildmenumode() ? "\<up>"    : "\<left>"
 cnoremap <expr> <right> wildmenumode() ? "\<down>"  : "\<right>"
 
+"}}}---------------
+"--- Treesitter {{{
+"------------------
+
+lua << EOF
+vim.api.nvim_create_autocmd('FileType', {
+  pattern = { 'c', 'cpp', 'python', 'make', 'sh' },
+  callback = function()
+    vim.treesitter.start()
+  end,
+})
+EOF
+
 "}}}------------
 "--- Colorscheme {{{
 "-------------------
 
 " Set a good default colorscheme.
 set background=dark
-try
-	colorscheme PaperColor
-catch
-	colorscheme default
-endtry
+colorscheme darkblue
 
 " Show syntax highlighting groups for word under cursor
 nnoremap gS :call <SID>get_syntax_groups()<CR>

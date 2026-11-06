@@ -124,6 +124,8 @@ Done when: a C file, a Python file, this config, and a file that mixes `{{{` wit
 
 ## Phase 5 — GPG
 
+Until this phase, `g:GPGUsePipes` is set in `init.lua` so decrypt and encrypt do not write plaintext under `/tmp`. The save path still copies ciphertext from that temp directory onto the home filesystem, and a crash in that window can drop the original. That stays until the rewrite.
+
 Write `lua/config/gpg.lua`. Do not start it by copying the plugin. The behavior spec:
 
 - File patterns: `*.gpg`, `*.pgp`, `*.asc`.

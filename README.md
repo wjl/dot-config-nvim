@@ -1,6 +1,6 @@
 # ~/.config/nvim
 
-This is just a copy of my NeoVim configuration so I can easily share it with others. Feel free to use as-is, modify it, or just mine it for ideas.
+This is my NeoVim configuration. `init.lua` is the entry point. The refresh plan is in [docs/](docs/README.md). Feel free to use as-is, modify it, or just mine it for ideas.
 
 It requires:
 - NeoVim -- this won't work with Vim.

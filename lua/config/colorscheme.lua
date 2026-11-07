@@ -1,4 +1,4 @@
--- Shared colorscheme loader.
+-- Shared colorscheme loader. The reasons for the split are in colors/README.md.
 --
 -- A scheme paints five tiers. Neovim picks gui colors when 'termguicolors'
 -- is on, otherwise the cterm indexes. 't_Co' below 8 gets attributes only.
@@ -112,9 +112,104 @@ function M.apply(name, paints, links)
 	end
 
 	vim.g.colors_name = name
+	-- highlights.lua copies this onto MatchParen after ColorScheme.
+	-- Only a scheme that stored it, and is still the active name, may use it.
 	if paints.MatchParen then
-		vim.g.folio_paren = paints.MatchParen[which]
+		vim.g.scheme_paren = paints.MatchParen[which]
+	else
+		vim.g.scheme_paren = nil
 	end
 end
+
+-- Classic groups and captures. Schemes pass this to M.apply.
+M.links = {
+	Character = 'String',
+	Number = 'Constant',
+	Boolean = 'Constant',
+	Float = 'Constant',
+	Conditional = 'Keyword',
+	Repeat = 'Keyword',
+	Label = 'Keyword',
+	Exception = 'Keyword',
+	Statement = 'Keyword',
+	Include = 'PreProc',
+	Define = 'PreProc',
+	Macro = 'PreProc',
+	PreCondit = 'PreProc',
+	StorageClass = 'Type',
+	Structure = 'Type',
+	Typedef = 'Type',
+	SpecialChar = 'Special',
+	Tag = 'Special',
+	Debug = 'Special',
+	SpecialComment = 'Special',
+	VisualNOS = 'Visual',
+	CurSearch = 'IncSearch',
+	NormalFloat = 'Pmenu',
+	NormalNC = 'Normal',
+	Conceal = 'Comment',
+	Added = 'DiffAdd',
+	Changed = 'DiffChange',
+	Removed = 'DiffDelete',
+	DiagnosticError = 'Error',
+	DiagnosticWarn = 'WarningMsg',
+	DiagnosticInfo = 'Directory',
+	DiagnosticHint = 'Comment',
+	DiagnosticOk = 'String',
+	PmenuKind = 'Pmenu',
+	PmenuExtra = 'Pmenu',
+	PmenuMatch = 'Pmenu',
+	['@variable'] = 'Identifier',
+	['@variable.builtin'] = 'Special',
+	['@variable.parameter'] = 'Identifier',
+	['@constant'] = 'Constant',
+	['@constant.builtin'] = 'Constant',
+	['@constant.macro'] = 'Macro',
+	['@module'] = 'Include',
+	['@string'] = 'String',
+	['@string.escape'] = 'SpecialChar',
+	['@string.special'] = 'SpecialChar',
+	['@character'] = 'Character',
+	['@number'] = 'Number',
+	['@boolean'] = 'Boolean',
+	['@float'] = 'Float',
+	['@function'] = 'Function',
+	['@function.builtin'] = 'Function',
+	['@function.call'] = 'Function',
+	['@function.method'] = 'Function',
+	['@function.method.call'] = 'Function',
+	['@constructor'] = 'Type',
+	['@keyword'] = 'Keyword',
+	['@keyword.function'] = 'Keyword',
+	['@keyword.operator'] = 'Operator',
+	['@keyword.return'] = 'Keyword',
+	['@keyword.conditional'] = 'Conditional',
+	['@keyword.repeat'] = 'Repeat',
+	['@keyword.exception'] = 'Exception',
+	['@keyword.import'] = 'Include',
+	['@operator'] = 'Operator',
+	['@punctuation'] = 'Delimiter',
+	['@punctuation.bracket'] = 'Delimiter',
+	['@punctuation.delimiter'] = 'Delimiter',
+	['@punctuation.special'] = 'Special',
+	['@type'] = 'Type',
+	['@type.builtin'] = 'Type',
+	['@attribute'] = 'PreProc',
+	['@property'] = 'Identifier',
+	['@comment'] = 'Comment',
+	['@comment.todo'] = 'Todo',
+	['@comment.error'] = 'Error',
+	['@comment.note'] = 'SpecialComment',
+	['@markup.heading'] = 'Title',
+	['@markup.link'] = 'Underlined',
+	['@markup.raw'] = 'String',
+	['@markup.underline'] = 'Underlined',
+	['@tag'] = 'Tag',
+	['@tag.attribute'] = 'Type',
+	['@tag.delimiter'] = 'Delimiter',
+	['@diff.plus'] = 'DiffAdd',
+	['@diff.minus'] = 'DiffDelete',
+	['@diff.delta'] = 'DiffChange',
+}
 
 return M

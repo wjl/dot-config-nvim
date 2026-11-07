@@ -1,10 +1,17 @@
 local M = {}
 
+-- Schemes that store MatchParen and repaint when 'termguicolors' changes.
+-- slate keeps the gold underline.
+local owned = {
+	folio = true,
+	dos = true,
+	brimstone = true,
+}
+
 local function matchparen()
 	-- Underline and foreground only. A filled background looks like a cursor.
-	-- folio stores the mate color for the page that just loaded.
-	local paren = vim.g.folio_paren
-	if vim.g.colors_name == 'folio' and type(paren) == 'table' then
+	local paren = vim.g.scheme_paren
+	if owned[vim.g.colors_name] and type(paren) == 'table' then
 		vim.api.nvim_set_hl(0, 'MatchParen', paren)
 		return
 	end
@@ -35,8 +42,9 @@ function M.setup()
 		pattern = 'termguicolors',
 		nested = true,
 		callback = function()
-			if vim.g.colors_name == 'folio' then
-				vim.cmd.colorscheme('folio')
+			local name = vim.g.colors_name
+			if owned[name] then
+				vim.cmd.colorscheme(name)
 			end
 		end,
 	})

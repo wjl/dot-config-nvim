@@ -89,7 +89,15 @@ Done when: a day of editing does not turn up a missing mapping, and `:scriptname
 
 A small set of schemes we own, not one, and not a gallery of the built-in defaults. PaperColor light is the quality bar: readable on a grey page, color carrying meaning, nothing fluorescent for its own sake. Each scheme still has to survive every terminal tier, including an 8-color terminal.
 
-The first scheme is `folio`. It is one name with two pages. `:set background=light` loads the warm grey page. `:set background=dark` loads the warm near-black page. Startup stays dark. `:colorscheme slate` is still there. The status line keeps the lightline `one` colors, so the bar does not change with the page. The tier check below is headless so far. It is not signed off until you have looked at both pages in a real terminal.
+The first scheme is `folio`. It is one name with two pages. `:set background=light` loads the warm grey page. `:set background=dark` loads the warm near-black page. Startup stays dark. `:colorscheme slate` is still there. The status line keeps the lightline `one` colors, so the bar does not change with the page. Both pages have been looked at in a real terminal, including an 8-color terminal and a 16-color terminal.
+
+`dos` and `brimstone` are one look each. `:set background` reloads them and the colors stay. Startup stays `folio`.
+
+`dos` is white on the Borland blue (`#0000AA`) in truecolor and in 256 colors. Keywords are yellow, comments are light cyan, strings are light green, and a selection is a solid black-on-cyan bar. At 16 colors the page stays black. Konsole's ANSI blue is sky blue, so a blue page washes out. Keywords stay yellow, strings and types are bright blue, and comments are cyan. At 8 colors the page is white on black, keywords are yellow, and the strings and types are blue instead of green.
+
+`brimstone` is warm gold (`#F8E6B4`) on a darker brick (`#4E2824`) in truecolor. Comments are gray, so they do not read as a second copy of the body. 256 colors have no dark brown, so that tier is the same gold on a deep red. At 16 colors the page stays black, because ANSI red is too bright on Konsole to be a page. The body is yellow, keywords are white, and comments are orange. At 8 colors the body is white on black and the other roles are yellow.
+
+You have looked at `folio`, `dos`, and `brimstone` in a real terminal, including the 8-color and 16-color fallbacks. This set is enough for now. More schemes wait until you ask. The rules for a new one are in `colors/README.md`.
 
 Tiers, picked from what the terminal can do:
 

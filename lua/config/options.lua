@@ -7,7 +7,8 @@ o.modeline = false
 o.fileencodings = {}
 o.fileformats = { 'unix', 'dos', 'mac' }
 
--- A terminal that advertises a light background would flip a dark scheme.
+-- Start on the dark page. :set background=light switches folio.
+-- A terminal that advertises a light background does not override this.
 o.background = 'dark'
 
 -- 'autochdir' has been unreliable and breaks plugins that care about cwd.

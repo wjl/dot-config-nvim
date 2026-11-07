@@ -39,6 +39,19 @@ local MODE_BG = {
 local branch_cache = {}
 local branch_generation = 0
 
+local function cterm_index(spec, co)
+	if co >= 256 then
+		return spec[2]
+	end
+	local n = spec[3]
+	-- 8 is bright black. An 8-color terminal has no such color, and the
+	-- raised band has to stay off both the black middle and the mode chip.
+	if co < 16 and n >= 8 then
+		return 6
+	end
+	return n
+end
+
 local function hl(group, fg, bg, bold)
 	local co = tonumber(vim.fn.eval('&t_Co')) or 256
 	if co < 8 then
@@ -48,8 +61,8 @@ local function hl(group, fg, bg, bold)
 		})
 		return
 	end
-	local fg_n = co >= 256 and fg[2] or fg[3]
-	local bg_n = co >= 256 and bg[2] or bg[3]
+	local fg_n = cterm_index(fg, co)
+	local bg_n = cterm_index(bg, co)
 	vim.api.nvim_set_hl(0, group, {
 		fg = fg[1],
 		bg = bg[1],

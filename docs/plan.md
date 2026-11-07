@@ -87,14 +87,17 @@ Done when: a day of editing does not turn up a missing mapping, and `:scriptname
 
 ## Phase 3 — Themes
 
-A small set of schemes we own, not one, and not a gallery of the built-in defaults. PaperColor light is the quality bar: readable on a grey page, color carrying meaning, nothing fluorescent for its own sake. We design the set when we get here. Each scheme still has to survive the four terminal tiers.
+A small set of schemes we own, not one, and not a gallery of the built-in defaults. PaperColor light is the quality bar: readable on a grey page, color carrying meaning, nothing fluorescent for its own sake. Each scheme still has to survive every terminal tier, including an 8-color terminal.
+
+The first scheme is `folio`. It is one name with two pages. `:set background=light` loads the warm grey page. `:set background=dark` loads the warm near-black page. Startup stays dark. `:colorscheme slate` is still there. The status line keeps the lightline `one` colors, so the bar does not change with the page. The tier check below is headless so far. It is not signed off until you have looked at both pages in a real terminal.
 
 Tiers, picked from what the terminal can do:
 
 | Tier | When | How highlights are specified |
 | --- | --- | --- |
 | Mono | `'t_Co'` below 8, or a dumb terminal | bold, underline, italic, reverse only. No assumption of color |
-| 16 | `'t_Co'` below 256 and `termguicolors` off | ANSI 0–15 only, so the terminal's own palette supplies the actual color |
+| 8 | `'t_Co'` below 16 and at least 8, `termguicolors` off | ANSI 0–7 only. Bright indexes are not colors on these terminals |
+| 16 | `'t_Co'` at least 16 and below 256, `termguicolors` off | ANSI 0–15 only, so the terminal's own palette supplies the actual color |
 | 256 | `'t_Co'` is 256 and `termguicolors` off | palette indexes chosen for that scheme |
 | Truecolor | `termguicolors` on | the same design as hex |
 
@@ -104,7 +107,7 @@ Every treesitter `@capture` we care about is linked to a classic group (`@functi
 
 `gS` prints the syntax stack and, when a treesitter highlighter is active, the captures under the cursor.
 
-Done when: each scheme in the set is readable in `TERM=dumb`, a 16-color `TERM`, `xterm-256color` with `termguicolors` off, and a truecolor terminal. A written note of that check goes in this file.
+Done when: each scheme in the set is readable in `TERM=dumb`, an 8-color `TERM`, a 16-color `TERM`, `xterm-256color` with `termguicolors` off, and a truecolor terminal. A written note of that check goes in this file.
 
 ## Phase 4 — Folds
 
@@ -116,7 +119,7 @@ Replace syntaxMarkerFold.
 2. Otherwise use a structural level. First choice is a treesitter fold, and only for a language whose parser and query we have just tested in this Neovim. Legacy syntax folds do not have a supported "what level is this line" function, which is why the old plugin injected fake syntax regions. We will not keep doing that.
 3. If that language has neither, the line does not add a structural fold. Indent folding is not a substitute unless you ask for it.
 
-`foldlevelstart=999`, `foldcolumn=2`, and the fold text stay. `<Space>` and `<Enter>` stay. The `*.txt` ftdetect force becomes unnecessary once markers work in every filetype.
+`foldlevelstart=999`, `foldcolumn=2`, and the fold text stay. `<Space>` and `<Enter>` stay. The `*.txt` ftdetect force becomes unnecessary once markers work in every filetype. Plain text highlighting is `syntax/text.vim`: headings, `*` emphasis, `*` and `-` bullets, `{{{` / `}}}` fold markers, quotes, links, and fenced code. It is not the markdown filetype. Underscore emphasis, indented code blocks, and HTML stay off.
 
 Treesitter highlighting stays off in this phase unless a language passed the phase 3 capture links and a manual check that `()` navigation is still honest. A fold query does not require the highlighter.
 

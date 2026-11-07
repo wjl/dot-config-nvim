@@ -1,13 +1,5 @@
 local M = {}
 
-local function wild(in_menu, otherwise)
-	local menu_key = vim.keycode(in_menu)
-	local plain_key = vim.keycode(otherwise)
-	return function()
-		return vim.fn.wildmenumode() == 1 and menu_key or plain_key
-	end
-end
-
 function M.setup()
 	-- Ex mode is not useful. Q formats instead.
 	vim.keymap.set({ 'n', 'v' }, 'Q', 'gq')
@@ -15,7 +7,16 @@ function M.setup()
 	vim.keymap.set('n', '<Space>', 'za')
 	vim.keymap.set('n', '<CR>', 'zx')
 
-	-- Arrows follow the menu, which is horizontal, not the history.
+	-- While the completion menu is open, Up and Down move through the
+	-- matches and Left and Right walk directories. Otherwise the arrows
+	-- keep their normal command-line meaning.
+	-- An expr map already translates <Key> names. vim.keycode() hands it
+	-- the raw bytes, and those show up as <80>ku on the command line.
+	local function wild(in_menu, otherwise)
+		return function()
+			return vim.fn.wildmenumode() == 1 and in_menu or otherwise
+		end
+	end
 	vim.keymap.set('c', '<Up>', wild('<Left>', '<Up>'), { expr = true })
 	vim.keymap.set('c', '<Down>', wild('<Right>', '<Down>'), { expr = true })
 	vim.keymap.set('c', '<Left>', wild('<Up>', '<Left>'), { expr = true })

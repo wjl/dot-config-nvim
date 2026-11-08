@@ -33,6 +33,9 @@ vim.cmd('set whichwrap+=<,>,[,]')
 o.showbreak = '↪ '
 o.linebreak = true
 o.breakindent = true
+-- Ctrl-E / Ctrl-Y and the mouse wheel scroll a wrapped line by screen
+-- row instead of jumping over all of it.
+o.smoothscroll = true
 o.colorcolumn:append('+1')
 
 o.number = true
@@ -99,7 +102,14 @@ o.fillchars:append({ fold = ' ', foldinner = '│' })
 -- Plain text is markdown: headings, lists, and fenced code are highlighted
 -- and fold. A filename Neovim knows (CMakeLists.txt, requirements.txt) and
 -- Neovim's own help files keep their own filetype.
-vim.filetype.add({ extension = { txt = 'markdown' } })
+vim.filetype.add({
+	extension = {
+		txt = 'markdown',
+		-- Neovim knows *.c++ but not these.
+		['h++'] = 'cpp',
+		vhdlpp = 'vhdl',
+	},
+})
 
 o.wildmode = 'longest:full'
 vim.cmd('set wildcharm=<C-z>')

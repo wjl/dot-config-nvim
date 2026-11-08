@@ -7,6 +7,10 @@ function M.setup()
 	vim.keymap.set('n', '<Space>', 'za')
 	vim.keymap.set('n', '<CR>', 'zx')
 
+	-- Neovim's own <C-L> (clear search highlighting, update diffs, redraw),
+	-- then center the cursor line.
+	vim.keymap.set('n', '<C-L>', '<Cmd>nohlsearch|diffupdate|normal! <C-L>zz<CR>')
+
 	-- While the completion menu is open, Up and Down move through the
 	-- matches and Left and Right walk directories. Otherwise the arrows
 	-- keep their normal command-line meaning.

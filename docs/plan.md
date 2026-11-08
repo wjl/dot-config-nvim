@@ -38,8 +38,7 @@ lua/config/files.lua          -- netrw "-"
 lua/config/tabs.lua           -- :TabSort
 lua/config/gpg.lua            -- *.gpg, *.pgp, *.asc
 colors/                       -- phase 3, several schemes
-ftdetect/
-ftplugin/
+after/                        -- ftplugin and syntax for lua and markdown
 docs/
 ```
 
@@ -202,6 +201,14 @@ Checked headless in throwaway repositories: each mark, pending marks, the pause 
 ## Phase 7 — Defaults we choose
 
 Turn on only the rows you say yes to. Candidates are in the audit: persistent undo, `smoothscroll`, a `<C-l>` that clears search highlighting, a spell toggle. Nothing else from that table changes by default.
+
+Decided:
+
+- Persistent undo: **no**. Git keeps history; the editor should not keep extra copies of file contents, and no rule can tell which files are sensitive.
+- `smoothscroll`: **on**, to try. The mouse wheel's 3 lines per notch is Neovim's default `mousescroll=ver:3,hor:6`, not something set here.
+- `<C-L>`: Neovim 0.12 already maps it to `:nohlsearch | diffupdate` and a redraw. Ours does that and then `zz`.
+- Spell: no toggle key; `:set spell` / `:set nospell` by hand.
+- Cleanups: `after/ftplugin/cpp` and `after/ftplugin/dart` only restated Neovim's `// %s`; Neovim knows `*.c++`. `*.h++` and `*.vhdlpp` moved to `vim.filetype.add` in `options.lua`, and `ftdetect/` is gone.
 
 ## Phase 8 — AI
 

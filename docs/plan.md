@@ -45,6 +45,10 @@ docs/
 
 No `plugin/` directory that runs third-party code unless a phase explicitly vendors something. vim-plug is gone. The fold plugin is gone. GPG is copied under `pack/vendor/` until phase 5. That copy is GPL-2 and is deleted when `gpg.lua` replaces it.
 
+## Hard tabs
+
+Always. `lua/config/autocmds.lua` holds `noexpandtab`, `softtabstop=0`, `varsofttabstop=`, and `shiftwidth=0` (follow `tabstop`) for every buffer. Each of the others makes Tab or `>>` insert spaces. A filetype plugin or indent script is undone after its FileType event, a `.editorconfig` indent setting is ignored, and a `:set` or Lua call by hand is reverted by OptionSet with a warning. There is no setting to turn this off. `tabstop` is 4 on each FileType; changing it by hand only changes how wide a tab looks.
+
 ## Phase 1 — Stop the damage
 
 Applied, then carried into the Lua port. Checked in the terminal: the cursor on `(` stays the cursor, and the mate is a brighter yellow/orange underline. The same in the other direction.
@@ -128,7 +132,7 @@ Replace syntaxMarkerFold.
 
 `foldlevelstart=999` and the fold text stay. `<Space>` and `<Enter>` stay. `foldcolumn` is 1 with `fillchars` `foldinner:│`: `-` where an open fold starts, `+` on a closed fold, `│` on every line inside a fold, and never a level digit. At 2 columns, nested folds showed digits that ran into the line numbers.
 
-`*.txt` is the markdown filetype (`vim.filetype.add` in `options.lua`). Filenames Neovim knows, such as `CMakeLists.txt` and `requirements.txt`, and help files keep their own filetype. `after/syntax/markdown.vim` highlights `{{{` / `}}}` as `Special` and drops markdown's error mark on a `_` inside a word. The markdown filetype plugin turns `expandtab` on; the FileType indent lock turns it back off. Markdown treats a tab-indented line after a blank line as an indented code block. An earlier `syntax/text.vim` kept a smaller markdown-like set for `.txt`; it is gone.
+`*.txt` is the markdown filetype (`vim.filetype.add` in `options.lua`). Filenames Neovim knows, such as `CMakeLists.txt` and `requirements.txt`, and help files keep their own filetype. `after/syntax/markdown.vim` highlights `{{{` / `}}}` as `Special` and drops markdown's error mark on a `_` inside a word. The markdown filetype plugin turns `expandtab` on; the hard-tab lock turns it back off. Markdown treats a tab-indented line after a blank line as an indented code block. An earlier `syntax/text.vim` kept a smaller markdown-like set for `.txt`; it is gone.
 
 Treesitter highlighting stays off in this phase unless a language passed the phase 3 capture links and a manual check that `()` navigation is still honest. A fold query does not require the highlighter.
 

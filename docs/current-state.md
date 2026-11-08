@@ -13,7 +13,7 @@ What you run now:
 | `lua/config/foldscan/` | Structural folds without a parser. One scanner per language family; see the phase 4 table in `plan.md` |
 | `after/ftplugin/markdown.lua` | Markdown uses the classic syntax, so code fences are colored in their language |
 | `after/syntax/markdown.vim` | `{{{` / `}}}` are highlighted, and a `_` inside a word is not an error. `*.txt` is markdown |
-| `lua/config/autocmds.lua` | FileType indent lock, and BufEnter `lcd` |
+| `lua/config/autocmds.lua` | The hard-tab lock, and BufEnter `lcd` |
 | `lua/config/mappings.lua` | `Q`, Space, Enter, wildmenu arrows, `gS` |
 | `lua/config/files.lua` | `-` |
 | `lua/config/cursorword.lua` | Underline the word under the cursor |

@@ -182,15 +182,19 @@ Checked against a throwaway keyring with headless Neovim: a key file (two recipi
 
 ## Phase 6 — Change gutter
 
-Wanted, after the editor itself is solid. This is the part of "Git in the editor" that is actually useful next to a CLI workflow.
+Written: `lua/config/gutter.lua`. In-house, no plugin.
 
-- A sign column for added, changed, and deleted lines, from `git diff` against the file on disk versus `HEAD`.
-- Refresh on save and on focus, not on every keystroke.
+- Signs for lines that differ from the **index**, not `HEAD`: a sign means changed here and not yet staged or committed. `git add` clears it.
+- `+` added, `~` changed, `_` lines deleted below, `‾` lines deleted above line 1, `~_` changed with lines deleted below. Colors are the scheme's `DiffAdd` / `DiffChange` / `DiffDelete` (groups `GutterAdd`, `GutterChange`, `GutterDelete`), so every tier works, and mono still tells them apart by the character.
+- The diff is in memory (`vim.text.diff`, histogram) between the buffer and `git cat-file --filters :./file`, so it follows unsaved edits. Two timers: it runs 600 ms after the last edit, and at least every 4 s while you keep editing.
+- An edited line gets `·` (`GutterPending`, the line-number color) the moment Neovim reports the change, and keeps it until the next diff.
+- The index copy is reloaded when git rewrites `index` or `HEAD` (a watch on the git directory, so `git add` in another terminal shows up), on focus, and after `:w`.
+- An untracked file is all `+`. An ignored file, a file outside a repository, and special buffers (help, terminal, `.gpg`) get no signs.
+- `signcolumn=yes` in a window that shows a file inside a repository, so text does not shift when signs appear, and `auto` elsewhere.
+- `]c` / `[c` jump between changes; in diff mode they keep their usual meaning.
 - No `:Git`, no status window, no hunk staging, unless you later ask.
-- `signcolumn=yes` while this is on, so the text does not jump.
-- Branch name is already on the status line from phase 2.
 
-In-house. A vendored plugin is on the table only if the diff parsing turns out to be a project of its own, and then it is copied in at a pinned commit.
+Checked headless in a throwaway repository: change, delete, add, top delete, pending marks, the pause and the deadline (about 4 s while editing nonstop), `git add` clearing signs, untracked, ignored, outside a repository, an unsaved new file, `]c` / `[c`. A 100k-line file diffs in about 50 ms.
 
 ## Phase 7 — Defaults we choose
 

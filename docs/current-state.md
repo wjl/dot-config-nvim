@@ -19,6 +19,7 @@ What you run now:
 | `lua/config/cursorword.lua` | Underline the word under the cursor |
 | `lua/config/statusline.lua` | Status line and tab line |
 | `lua/config/tabs.lua` | `:TabSort` |
+| `lua/config/gutter.lua` | Signs for changes against the git index; `]c` / `[c` |
 | `lua/config/gpg.lua` | Edit `*.gpg` / `*.pgp` / `*.asc`; `:GpgInfo`, `:GpgEncryption`. Replaces vim-gnupg |
 
 `init.vim` and vim-plug are gone. Neovim 0.12 refuses to start with `E5422` if `init.lua` and `init.vim` both exist. Do not put `init.vim` back beside `init.lua`.

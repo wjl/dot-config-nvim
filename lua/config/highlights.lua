@@ -27,6 +27,7 @@ function M.apply()
 	matchparen()
 	require('config.statusline').highlights()
 	require('config.cursorword').highlights()
+	require('config.gutter').highlights()
 end
 
 function M.setup()

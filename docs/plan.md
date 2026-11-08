@@ -36,14 +36,14 @@ lua/config/statusline.lua
 lua/config/cursorword.lua
 lua/config/files.lua          -- netrw "-"
 lua/config/tabs.lua           -- :TabSort
-lua/config/gpg.lua            -- phase 5
+lua/config/gpg.lua            -- *.gpg, *.pgp, *.asc
 colors/                       -- phase 3, several schemes
 ftdetect/
 ftplugin/
 docs/
 ```
 
-No `plugin/` directory that runs third-party code unless a phase explicitly vendors something. vim-plug is gone. The fold plugin is gone. GPG is copied under `pack/vendor/` until phase 5. That copy is GPL-2 and is deleted when `gpg.lua` replaces it.
+No `plugin/` directory that runs third-party code unless a phase explicitly vendors something. vim-plug is gone. The fold plugin is gone. vim-gnupg (GPL-2) is gone, replaced by `gpg.lua`. Nothing is vendored.
 
 ## Hard tabs
 
@@ -74,7 +74,7 @@ Headless checks on 2026-11-06, after `VimEnter` (netrw does not build a listing 
 - Opening a directory as the file argument also opens a netrw listing. An empty buffer name in that case is netrw itself. `--clean` does the same.
 - `:TabSort` orders tabs by full path. The tab you were in stays current.
 - `gc` is the built-in map. indent-object and characterize are gone. vim-plug is gone.
-- vim-gnupg and vim-syntaxMarkerFold load from `pack/vendor/`.
+- vim-gnupg and vim-syntaxMarkerFold loaded from `pack/vendor/`. Both were replaced later (phases 4 and 5).
 
 Not brought over from vinegar: `.` to put the path on the command line, `y.` to yank it, and `~` to go home. Dotfiles stay visible.
 
@@ -159,26 +159,26 @@ The runtime Lua filetype plugin turns the highlighter on and replaces `'foldexpr
 
 Markdown: the runtime filetype plugin also turns on the treesitter highlighter, which can only color a code fence whose language has a parser installed. `after/ftplugin/markdown.lua` stops it, so the classic markdown syntax colors fences in every language listed in `g:markdown_fenced_languages` (`init.lua`) on every system. `gO`, `]]`, and `[[` from the runtime plugin still work. `*.txt` no longer forces `foldmethod=marker`. `zf` and `zd` create markers only when `'foldmethod'` is `marker`, so they do not insert markers while this expression is set.
 
-Not signed off until you have folded the samples in `~/Scratch/folds` (one per filetype above) and some real files of your own.
+Signed off: the samples in `~/Scratch/folds` and real files folded as expected.
 
 ## Phase 5 — GPG
 
-Until this phase, `g:GPGUsePipes` is set in `init.lua` so decrypt and encrypt do not write plaintext under `/tmp`. The save path still copies ciphertext from that temp directory onto the home filesystem, and a crash in that window can drop the original. That stays until the rewrite.
+Written: `lua/config/gpg.lua`, replacing vim-gnupg. Not signed off until you have opened, edited, and saved a real encrypted file of your own.
 
-Write `lua/config/gpg.lua`. Do not start it by copying the plugin. The behavior spec:
+- File patterns: `*.gpg`, `*.pgp`, `*.asc`. A file that is not encrypted (a public key, a signature, a keyring) is read and written as an ordinary file.
+- Read: `gpg --decrypt`, ciphertext in and plaintext out over pipes. The status output gives the key ids (`ENC_TO`) or a passphrase (`NEED_PASSPHRASE_SYM`), and whether the file was ASCII armor.
+- Write: the same way it was encrypted. Key files go to the same keys, a passphrase file gets a passphrase, armor stays armor.
+- A new file asks: passphrase, or recipients. Recipients start as your own key (`default-key` from `gpg.conf`, else the first valid secret key that can encrypt) and you can add more. `:GpgEncryption` asks again for an open file; `:GpgInfo` shows what a save will do. A file with hidden recipients (`--throw-keyids`) asks on its first save.
+- Passphrases: gpg-agent's pinentry when there is a display (or on Windows). Without one, a curses pinentry would fight Neovim for the terminal, so Neovim asks with `inputsecret()` and gpg gets the passphrase over a pipe on fd 3 (`--pinentry-mode loopback`). A cached passphrase is tried first, so a key the agent already unlocked does not ask. Nothing is stored. Saving a passphrase file asks once when the passphrase still opens the file on disk, and twice when it is a new passphrase. `g:gpg_loopback` forces either way.
+- The buffer is `noswapfile`, `noundofile`, `buftype=acwrite`. `'backup'` / `'writebackup'` do not apply, because Neovim never writes the file itself. `:w name.gpg` encrypts a copy; `:w name.txt` writes plaintext, because you named a plain file.
+- Saving writes the ciphertext to a new file in the same directory, fsyncs it, and renames it over the old one. A failed encrypt (unknown key, untrusted key, passphrases that do not match) or a failed write leaves the old file as it was and the buffer modified. A symlink stays a link, and the file keeps its permissions; a new file is `0600`.
+- A file that does not decrypt opens empty, read-only, and cannot be saved, so it cannot be overwritten with nothing. `:e` tries again.
+- `'shada'` is left alone. No `--trust-model always`: a key gpg does not consider valid is refused, with gpg's reason.
+- gpg runs with your normal keyring and `gpg.conf`. An unknown email may be looked up over the network (WKD) if `gpg.conf` allows it, as gpg would on the command line.
+- The plain-text name is used for the filetype: `notes.md.gpg` is markdown, `notes.txt.gpg` too.
+- The cipher is gpg's default, not copied from the old file. Signatures on an encrypted file are not kept on save.
 
-- File patterns: `*.gpg`, `*.pgp`, `*.asc`.
-- Read: `gpg --decrypt`. Passphrase comes from gpg-agent / pinentry. We never store it.
-- The decrypt status is parsed for "encrypted with a passphrase" versus public-key packets, and the key ids are stored on the buffer.
-- Write: encrypt with that same mode. Public-key files get the same recipient list. Symmetric files get `--symmetric` and the agent asks again only if the agent does not still have the passphrase. A new file asks once which of those two you want.
-- The buffer is `noswapfile`, `noundofile`, `nobackup`, `nowritebackup`, `buftype=acwrite`.
-- `'shada'` is left alone. We do not assign it inside a buffer hook.
-- Temp files are created under `$XDG_RUNTIME_DIR/nvim-gpg` if that is set, otherwise `~/.local/state/nvim/gpg`, mode `0700`, and removed in a `finally`. No plaintext under `/tmp`.
-- No `--trust-model always`.
-
-Test with throwaway files only: one symmetric, one encrypted to a key you already have, one new file, and a write that fails (wrong passphrase, unknown key) and must not destroy the original. Confirm with `ls` that no swap, undo, or backup file appeared, and that `'shada'` after the session is not empty.
-
-The plugin is removed in the same change that passes those checks, not before.
+Checked against a throwaway keyring with headless Neovim: a key file (two recipients), a symmetric file, armor, a new file to your own key, a new passphrase file, cancel, a wrong passphrase on read, mismatched passphrases on save, an unknown recipient, an untrusted key, a symlink, `:r`, and the agent's pinentry path through a fake pinentry. Each failure left the file byte for byte the same. With the full config: no swap file, `'shada'` unchanged, hard tabs, and folds.
 
 ## Phase 6 — Change gutter
 

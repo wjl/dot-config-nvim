@@ -19,7 +19,7 @@ What you run now:
 | `lua/config/cursorword.lua` | Underline the word under the cursor |
 | `lua/config/statusline.lua` | Status line and tab line |
 | `lua/config/tabs.lua` | `:TabSort` |
-| `pack/vendor/start/vim-gnupg` | Until phase 5. See `pack/vendor/VENDOR.md` |
+| `lua/config/gpg.lua` | Edit `*.gpg` / `*.pgp` / `*.asc`; `:GpgInfo`, `:GpgEncryption`. Replaces vim-gnupg |
 
 `init.vim` and vim-plug are gone. Neovim 0.12 refuses to start with `E5422` if `init.lua` and `init.vim` both exist. Do not put `init.vim` back beside `init.lua`.
 
@@ -95,7 +95,7 @@ That paints only the other bracket. If the cursor still teleports, we stop using
 
 The behavior you described (same recipients, or the same symmetric passphrase, plaintext only while editing) is what the plugin is aiming at. The shada wipe, the trust-model flag, and the temp-file path are why it should be replaced by a small module we can read, not treated as a black box. The repo header is CC0. Vendoring this plugin would put GPL-2 code in the tree. A thin wrapper we write can stay with the rest of the config.
 
-Until that module exists and has been used on a real file, the plugin stays.
+Replaced by `lua/config/gpg.lua` in phase 5. See `docs/plan.md`.
 
 ## Lightline bug
 

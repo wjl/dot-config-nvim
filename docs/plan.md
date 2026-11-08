@@ -39,6 +39,7 @@ lua/config/tabs.lua           -- :TabSort
 lua/config/gpg.lua            -- *.gpg, *.pgp, *.asc
 colors/                       -- phase 3, several schemes
 after/                        -- ftplugin and syntax for lua and markdown
+spell/                        -- fr, de, sv, es; own licenses
 docs/
 ```
 
@@ -207,7 +208,7 @@ Decided:
 - Persistent undo: **no**. Git keeps history; the editor should not keep extra copies of file contents, and no rule can tell which files are sensitive.
 - `smoothscroll`: **on**, to try. The mouse wheel's 3 lines per notch is Neovim's default `mousescroll=ver:3,hor:6`, not something set here.
 - `<C-L>`: Neovim 0.12 already maps it to `:nohlsearch | diffupdate` and a redraw. Ours does that and then `zz`.
-- Spell: no toggle key; `:set spell` / `:set nospell` by hand.
+- Spell: no toggle key; `:set spell` / `:set nospell` by hand. French, German, Swedish, and Spanish `.spl` files are vendored in `spell/` with their licenses (`spell/README.md`); English ships with Neovim. No `.sug` files: `z=` gave the same suggestions without them. `en,fr` together flags English hyphenated compounds, because French makes `-` a word character; `en` with `de`, `sv`, or `es` combines cleanly.
 - Cleanups: `after/ftplugin/cpp` and `after/ftplugin/dart` only restated Neovim's `// %s`; Neovim knows `*.c++`. `*.h++` and `*.vhdlpp` moved to `vim.filetype.add` in `options.lua`, and `ftdetect/` is gone.
 
 ## Phase 8 — AI

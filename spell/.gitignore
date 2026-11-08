@@ -1,0 +1,2 @@
+# Neovim rebuilds these from the .add word lists.
+*.add.spl

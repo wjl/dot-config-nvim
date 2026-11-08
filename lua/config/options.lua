@@ -61,7 +61,9 @@ o.cursorline = true
 o.cursorlineopt = 'number'
 o.title = true
 
--- 'spell' stays off. camel matters once a toggle turns spell on.
+-- 'spell' stays off; :set spell turns it on. French, German, Swedish, and
+-- Spanish are vendored in spell/ (see spell/README.md); English ships with
+-- Neovim. :setlocal spelllang=fr picks the language for one buffer.
 o.spelloptions:append('camel')
 
 o.showtabline = 2

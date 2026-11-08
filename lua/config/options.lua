@@ -87,10 +87,19 @@ o.smarttab = false
 o.copyindent = true
 
 o.foldlevelstart = 999
-o.foldmethod = 'syntax'
-o.foldcolumn = '2'
+o.foldmethod = 'expr'
+o.foldexpr = 'v:lua.require("config.folds").level()'
+-- One column: - where an open fold starts, + on a closed fold, and │ on
+-- every line inside a fold. foldinner keeps nested folds from showing
+-- their level as digits, which ran into the line numbers.
+o.foldcolumn = '1'
 o.foldignore = ''
-o.fillchars:append({ fold = ' ' })
+o.fillchars:append({ fold = ' ', foldinner = '│' })
+
+-- Plain text is markdown: headings, lists, and fenced code are highlighted
+-- and fold. A filename Neovim knows (CMakeLists.txt, requirements.txt) and
+-- Neovim's own help files keep their own filetype.
+vim.filetype.add({ extension = { txt = 'markdown' } })
 
 o.wildmode = 'longest:full'
 vim.cmd('set wildcharm=<C-z>')

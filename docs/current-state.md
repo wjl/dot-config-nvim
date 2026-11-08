@@ -8,8 +8,11 @@ What you run now:
 | --- | --- |
 | `init.lua` | Sets the options that plugins read, then loads the modules below |
 | `lua/config/options.lua` | The settings that are real choices |
-| `lua/config/highlights.lua` | `slate`, then MatchParen, the status line, and the cursor word |
-| `lua/config/folds.lua` | Fold text |
+| `lua/config/highlights.lua` | MatchParen, the status line, and the cursor word. Startup scheme is `folio` |
+| `lua/config/folds.lua` | Fold text, and the `expr` fold level |
+| `lua/config/foldscan/` | Structural folds without a parser. One scanner per language family; see the phase 4 table in `plan.md` |
+| `after/ftplugin/markdown.lua` | Markdown uses the classic syntax, so code fences are colored in their language |
+| `after/syntax/markdown.vim` | `{{{` / `}}}` are highlighted, and a `_` inside a word is not an error. `*.txt` is markdown |
 | `lua/config/autocmds.lua` | FileType indent lock, and BufEnter `lcd` |
 | `lua/config/mappings.lua` | `Q`, Space, Enter, wildmenu arrows, `gS` |
 | `lua/config/files.lua` | `-` |
@@ -17,7 +20,6 @@ What you run now:
 | `lua/config/statusline.lua` | Status line and tab line |
 | `lua/config/tabs.lua` | `:TabSort` |
 | `pack/vendor/start/vim-gnupg` | Until phase 5. See `pack/vendor/VENDOR.md` |
-| `pack/vendor/start/vim-syntaxMarkerFold` | Until phase 4 |
 
 `init.vim` and vim-plug are gone. Neovim 0.12 refuses to start with `E5422` if `init.lua` and `init.vim` both exist. Do not put `init.vim` back beside `init.lua`.
 

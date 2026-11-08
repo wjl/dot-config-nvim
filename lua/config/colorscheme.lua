@@ -210,6 +210,8 @@ M.links = {
 	['@diff.plus'] = 'DiffAdd',
 	['@diff.minus'] = 'DiffDelete',
 	['@diff.delta'] = 'DiffChange',
+	-- after/syntax/markdown.vim
+	markdownFoldMarker = 'Special',
 }
 
 return M

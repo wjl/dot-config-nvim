@@ -23,6 +23,39 @@ vim.g.qf_disable_statusline = 1
 -- Pipes keep the plaintext off disk. Pinentry is GTK, so it does not need the
 -- curses tty this setting can disrupt. Removed when gpg.lua replaces the plugin.
 vim.g.GPGUsePipes = 1
+-- Fenced code blocks in markdown (and so in .txt files) are highlighted
+-- in their own language. Each entry is `fence word=syntax name`, or just
+-- the syntax name. Every entry loads that syntax file when a markdown
+-- buffer opens, so keep the list to languages that are used.
+vim.g.markdown_fenced_languages = {
+	'sh',
+	'bash=sh',
+	'shell=sh',
+	'zsh',
+	'c',
+	'cpp',
+	'go',
+	'rust',
+	'rs=rust',
+	'python',
+	'py=python',
+	'lua',
+	'vim',
+	'javascript',
+	'js=javascript',
+	'typescript',
+	'ts=typescript',
+	'json',
+	'make',
+	'makefile=make',
+	'toml',
+	'ini=dosini',
+	'dosini',
+	'systemd',
+	'gitconfig',
+	'yaml',
+	'diff',
+}
 
 require('config.options')
 require('config.highlights').setup()

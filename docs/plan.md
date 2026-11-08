@@ -40,11 +40,10 @@ lua/config/gpg.lua            -- phase 5
 colors/                       -- phase 3, several schemes
 ftdetect/
 ftplugin/
-queries/                      -- only if we have to override a broken bundled query
 docs/
 ```
 
-No `plugin/` directory that runs third-party code unless a phase explicitly vendors something. vim-plug is gone. GPG and the fold plugin are copied under `pack/vendor/` until their own phases. The GPG copy is GPL-2 and is deleted when `gpg.lua` replaces it. The fold plugin is MIT.
+No `plugin/` directory that runs third-party code unless a phase explicitly vendors something. vim-plug is gone. The fold plugin is gone. GPG is copied under `pack/vendor/` until phase 5. That copy is GPL-2 and is deleted when `gpg.lua` replaces it.
 
 ## Phase 1 — Stop the damage
 
@@ -81,7 +80,7 @@ This phase is in the editor. It is not signed off until a real editing session. 
 
 `switchbuf=usetab,newtab` stays. The default `uselast` sends a quickfix jump to the window you used last, which is a split. `usetab` reuses a tab that already shows the buffer. `newtab` opens a new tab otherwise. `:split` still splits. This is the "one file per tab" setting. It covers quickfix, `:stag`, CTRL-W f, and `:sbuffer`.
 
-Still loaded until their own phases: vim-gnupg, and vim-syntaxMarkerFold on `foldmethod=syntax`. Folding was not rewritten in the same change as the port.
+Still loaded until its own phase: vim-gnupg. The fold plugin stayed through the port and was removed when folding moved to `foldmethod=expr`.
 
 Done when: a day of editing does not turn up a missing mapping, and `:scriptnames` shows no plug path except GPG and the fold plugin.
 
@@ -123,15 +122,40 @@ Replace syntaxMarkerFold.
 
 `foldmethod=expr`. For each line:
 
-1. If the line has a fold marker, use Vim's marker rules. That includes `{{{` / `}}}`, numbered `{{{1`, and a marker that is not inside a comment. The current plugin misses the last two, which is a lot of why it feels unreliable.
-2. Otherwise use a structural level. First choice is a treesitter fold, and only for a language whose parser and query we have just tested in this Neovim. Legacy syntax folds do not have a supported "what level is this line" function, which is why the old plugin injected fake syntax regions. We will not keep doing that.
+1. If the line has a fold marker, use Vim's marker rules. That includes `{{{` / `}}}`, numbered `{{{1`, and a marker that is not inside a comment. The old plugin missed the last two, which is a lot of why it felt unreliable.
+2. Otherwise use a structural level from a small scanner in Lua (`lua/config/foldscan/`). Legacy syntax folds do not have a supported "what level is this line" function, which is why the old plugin injected fake syntax regions. We will not keep doing that.
 3. If that language has neither, the line does not add a structural fold. Indent folding is not a substitute unless you ask for it.
 
-`foldlevelstart=999`, `foldcolumn=2`, and the fold text stay. `<Space>` and `<Enter>` stay. The `*.txt` ftdetect force becomes unnecessary once markers work in every filetype. Plain text highlighting is `syntax/text.vim`: headings, `*` emphasis, `*` and `-` bullets, `{{{` / `}}}` fold markers, quotes, links, and fenced code. It is not the markdown filetype. Underscore emphasis, indented code blocks, and HTML stay off.
+`foldlevelstart=999` and the fold text stay. `<Space>` and `<Enter>` stay. `foldcolumn` is 1 with `fillchars` `foldinner:│`: `-` where an open fold starts, `+` on a closed fold, `│` on every line inside a fold, and never a level digit. At 2 columns, nested folds showed digits that ran into the line numbers.
+
+`*.txt` is the markdown filetype (`vim.filetype.add` in `options.lua`). Filenames Neovim knows, such as `CMakeLists.txt` and `requirements.txt`, and help files keep their own filetype. `after/syntax/markdown.vim` highlights `{{{` / `}}}` as `Special` and drops markdown's error mark on a `_` inside a word. The markdown filetype plugin turns `expandtab` on; the FileType indent lock turns it back off. Markdown treats a tab-indented line after a blank line as an indented code block. An earlier `syntax/text.vim` kept a smaller markdown-like set for `.txt`; it is gone.
 
 Treesitter highlighting stays off in this phase unless a language passed the phase 3 capture links and a manual check that `()` navigation is still honest. A fold query does not require the highlighter.
 
-Done when: a C file, a Python file, this config, and a file that mixes `{{{` with syntactic blocks all fold in a way you can predict. The known-bad cases from the old README are tried on purpose.
+`lua/config/folds.lua` is that expression. The marker half follows `:help fold-marker`, including a numbered marker past level 5 and a marker that is not in a comment. A line where a marker opens gets `>`, so two marker sections with no blank line between them stay two folds.
+
+The structural half is `lua/config/foldscan/`, one small lexer per family. `init.lua` maps a filetype to its scanner and turns ranges into levels.
+
+| Scanner | Filetypes | What folds |
+| --- | --- | --- |
+| `clike.lua` | c, cpp, go, rust, javascript, typescript (and the react variants), json | `{ }` blocks from the line their statement starts on, block comments; C `#if` branches, multi-line `#define`, `#include` runs; Go `import (` groups; multi-line `[ ]` in JS, JSON, and Rust |
+| `python.lua` | python | a line ending in `:` and its deeper lines, decorators included |
+| `lua.lua` | lua | `function`, `if`, `do`, `while`, `for`, `repeat`, multi-line tables |
+| `shell.lua` | sh, bash, zsh, ksh | `if`, loops, `case`, `{ }` groups and function bodies, heredocs. Keywords count only in command position. Quotes and `$( )` nest across lines |
+| `vim.lua` | vim | `function`/`def`, `if`, `for`, `while`, `try`, `augroup`, class/interface/enum, heredocs, with Vim's abbreviations (`fu`, `endf`, `en`) |
+| `make.lua` | make | a rule and its recipe, `ifeq` … `else` … `endif`, `define`/`endef`, continued assignments |
+| `config.lua` | toml, dosini, confini, systemd, gitconfig, desktop | sections; in TOML `[a.b]` nests in `[a]`, and multi-line arrays and strings fold |
+| `markdown.lua` | markdown (and so `*.txt`) | heading sections nested by rank (setext too), code fences, front matter, HTML comments, a list of two or more items, a list item with sub-items |
+
+`elif`, `else`, `except`, `case`, and `} else {` each get their own fold beside the one before. Inside a markdown or text code fence, the fence's language scanner runs too, so a function in a ```` ```python ```` block folds. The level is added to the marker level, so a function inside a `{{{` block is a nested fold and a function outside one still folds. Other filetypes get markers only. Adding a language is usually a few lines in one of these files.
+
+Why a lexer and not treesitter: a treesitter parser is native code. Distros ship different sets (openSUSE has C, Lua, and Python but not C++; the official release tarball has no Python), and wasm parsers need a Neovim built with wasmtime, which is opt-in and experimental. The scanners are plain Lua, so folds are the same on every system that runs a recent Neovim, with nothing to build or install per machine. They know where blocks start and end and nothing about what a name means. Checked on real files from this system, about 3.4M lines over every filetype above: no errors, and blocks left open at the end of a file only where the file is not really that language (Perl and Tcl behind a `#!/bin/sh` line) or is itself unbalanced. Where treesitter could fold the same files (C, Python, Lua, Vimscript, Markdown), the fold starts agree except where the branch-per-fold choice above differs by design. A rescan on a 14k-line header takes about 8 ms per edit.
+
+The runtime Lua filetype plugin turns the highlighter on and replaces `'foldexpr'`; `after/ftplugin/lua.lua` puts our expression back. Lua highlighting stays, because that language was already checked.
+
+Markdown: the runtime filetype plugin also turns on the treesitter highlighter, which can only color a code fence whose language has a parser installed. `after/ftplugin/markdown.lua` stops it, so the classic markdown syntax colors fences in every language listed in `g:markdown_fenced_languages` (`init.lua`) on every system. `gO`, `]]`, and `[[` from the runtime plugin still work. `*.txt` no longer forces `foldmethod=marker`. `zf` and `zd` create markers only when `'foldmethod'` is `marker`, so they do not insert markers while this expression is set.
+
+Not signed off until you have folded the samples in `~/Scratch/folds` (one per filetype above) and some real files of your own.
 
 ## Phase 5 — GPG
 

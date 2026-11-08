@@ -134,6 +134,15 @@ local function render(buf)
 	if not st or not st.base or not api.nvim_buf_is_loaded(buf) then
 		return
 	end
+	-- Nothing to do when neither side changed since the last diff: the
+	-- same buffer text (changedtick) against the same index copy. Lua
+	-- interns strings, so comparing the index text is one pointer check.
+	local tick, ff = api.nvim_buf_get_changedtick(buf), vim.bo[buf].fileformat
+	local last = st.last
+	if last and last.tick == tick and last.base == st.base and last.ff == ff then
+		return
+	end
+	st.last = { tick = tick, base = st.base, ff = ff }
 	local lines = api.nvim_buf_get_lines(buf, 0, -1, false)
 	local text = #lines > 0 and table.concat(lines, '\n') .. '\n' or ''
 	local base = st.base

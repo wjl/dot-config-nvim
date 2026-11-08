@@ -161,6 +161,8 @@ Markdown: the runtime filetype plugin also turns on the treesitter highlighter, 
 
 Signed off: the samples in `~/Scratch/folds` and real files folded as expected.
 
+Speed. Neovim calls `'foldexpr'` once per line, so the per-call cost matters as much as the scan. `v:lua.Config.foldlevel()` (a global set in `init.lua`) costs about a third of `v:lua.require("config.folds").level()`, and the answers are prebuilt strings. A buffer over 20000 lines is rescanned 300 ms after the last change instead of on every change: the old answers stand until then, and `vim._foldupdate` (what Neovim's own treesitter and LSP folding use) recomputes the windows' folds. A 100k-line markdown file: open 0.8 s (was 1.7 s; about 0.4 s of that is Neovim and markdown syntax, not folds), each edit about 10 ms (was 180 ms). The fold results on every sample and config file are the same as before.
+
 ## Phase 5 — GPG
 
 Written: `lua/config/gpg.lua`, replacing vim-gnupg. Not signed off until you have opened, edited, and saved a real encrypted file of your own.
@@ -184,17 +186,18 @@ Checked against a throwaway keyring with headless Neovim: a key file (two recipi
 
 Written: `lua/config/gutter.lua`. In-house, no plugin.
 
-- Signs for lines that differ from the **index**, not `HEAD`: a sign means changed here and not yet staged or committed. `git add` clears it.
-- `+` added, `~` changed, `_` lines deleted below, `‾` lines deleted above line 1, `~_` changed with lines deleted below. Colors are the scheme's `DiffAdd` / `DiffChange` / `DiffDelete` (groups `GutterAdd`, `GutterChange`, `GutterDelete`), so every tier works, and mono still tells them apart by the character.
+- Marks for lines that differ from the **index**, not `HEAD`: a mark means changed here and not yet staged or committed. `git add` clears it.
+- One column, one cell, drawn by `'statuscolumn'` (`%C%s` + our cell + `%l`) between the fold column and the line numbers, only in windows showing a file inside a repository. Other signs (diagnostics) still use the normal sign column, which appears only when there are some.
+- `+` added, `~` changed, `_` lines deleted below, `‾` lines deleted above, `≃` changed with lines deleted below, `≂` changed with lines deleted above. The diff uses `linematch`, so "delete line 1, edit line 2" is a deletion above a change (`≂`), not one changed block. Colors are the scheme's `DiffAdd` / `DiffChange` / `DiffDelete` (groups `GutterAdd`, `GutterChange`, `GutterDelete`), so every tier works, and mono tells them apart by the character.
+- A closed fold shows `~` when anything inside it is marked, or `·` when something inside is edited and not yet diffed.
 - The diff is in memory (`vim.text.diff`, histogram) between the buffer and `git cat-file --filters :./file`, so it follows unsaved edits. Two timers: it runs 600 ms after the last edit, and at least every 4 s while you keep editing.
-- An edited line gets `·` (`GutterPending`, the line-number color) the moment Neovim reports the change, and keeps it until the next diff.
-- The index copy is reloaded when git rewrites `index` or `HEAD` (a watch on the git directory, so `git add` in another terminal shows up), on focus, and after `:w`.
-- An untracked file is all `+`. An ignored file, a file outside a repository, and special buffers (help, terminal, `.gpg`) get no signs.
-- `signcolumn=yes` in a window that shows a file inside a repository, so text does not shift when signs appear, and `auto` elsewhere.
+- An edited line gets `·` (`GutterPending`, the line-number color) the moment Neovim reports the change, and keeps it until the next diff. Marks are extmarks, so they move with edits until then.
+- The index copy is reloaded when git rewrites `index` or `HEAD` (a watch on the git directory, so `git add` in another terminal shows up), after `:w`, and on focus at most once per 4 s: the first focus reloads at once, and more focus changes inside those 4 s reload once at the end.
+- An untracked file is all `+`. An ignored file, a file outside a repository, and special buffers (help, terminal, `.gpg`) get no marks.
 - `]c` / `[c` jump between changes; in diff mode they keep their usual meaning.
 - No `:Git`, no status window, no hunk staging, unless you later ask.
 
-Checked headless in a throwaway repository: change, delete, add, top delete, pending marks, the pause and the deadline (about 4 s while editing nonstop), `git add` clearing signs, untracked, ignored, outside a repository, an unsaved new file, `]c` / `[c`. A 100k-line file diffs in about 50 ms.
+Checked headless in throwaway repositories: each mark, pending marks, the pause and the deadline (about 4 s while editing nonstop), `git add` clearing marks, untracked, ignored, outside a repository, an unsaved new file, `]c` / `[c`, closed folds, the focus limit, and that the line number keeps `LineNr` / `CursorLineNr`. A 100k-line file diffs in about 50 ms.
 
 ## Phase 7 — Defaults we choose
 

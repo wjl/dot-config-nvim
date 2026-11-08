@@ -62,48 +62,89 @@ local function marker_levels(lines, foldmarker)
 	return levels, starts
 end
 
+local api = vim.api
+
+-- Per buffer: the foldexpr answer for every line, built once per change.
+-- 'foldmarker' and 'filetype' changes clear it (see setup).
 local cache = {}
 
--- Marker levels and structural levels for the whole buffer, kept until
--- the buffer or 'foldmarker' changes.
-local function buffer_levels(bufnr)
-	local tick = vim.api.nvim_buf_get_changedtick(bufnr)
-	local foldmarker = vim.wo.foldmarker
-	local ft = vim.bo[bufnr].filetype
-	local hit = cache[bufnr]
-	if hit and hit.tick == tick and hit.foldmarker == foldmarker and hit.ft == ft then
-		return hit
+-- A buffer this long is rescanned after a pause instead of on every
+-- change, so typing never waits for the scan. Until the rescan the old
+-- answers stand, and then the windows' folds are recomputed.
+local BIG = 20000
+local PAUSE = 300
+local timers = {}
+
+-- '0', '1', ... and '>1', '>2', ... are shared, not rebuilt per line.
+local plain, start = {}, {}
+local function answer(level, starts)
+	local t = starts and start or plain
+	local s = t[level]
+	if not s then
+		s = (starts and '>' or '') .. level
+		t[level] = s
 	end
-	local lines = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
-	local marker, marker_starts = marker_levels(lines, foldmarker)
-	local ok, struct, struct_starts = pcall(foldscan.levels, lines, ft)
-	if not ok then
-		struct, struct_starts = nil, nil
+	return s
+end
+
+local function scan(bufnr)
+	local lines = api.nvim_buf_get_lines(bufnr, 0, -1, false)
+	local marker, marker_starts = marker_levels(lines, vim.wo.foldmarker)
+	local ok, struct, struct_starts = pcall(foldscan.levels, lines, vim.bo[bufnr].filetype)
+	if not ok or not struct then
+		struct, struct_starts = {}, {}
 	end
-	hit = {
-		tick = tick,
-		foldmarker = foldmarker,
-		ft = ft,
-		marker = marker,
-		marker_starts = marker_starts,
-		struct = struct or {},
-		struct_starts = struct_starts or {},
-	}
+	struct_starts = struct_starts or {}
+	-- Marker level plus structural level. A line where either kind of
+	-- fold starts gets ">", so two folds of the same level side by side
+	-- stay two folds. Filetypes without a scanner fold on markers alone.
+	local expr = {}
+	for i = 1, #lines do
+		local level = (marker[i] or 0) + (struct[i] or 0)
+		expr[i] = answer(level, level > 0 and (marker_starts[i] or struct_starts[i]))
+	end
+	local hit = { tick = api.nvim_buf_get_changedtick(bufnr), expr = expr }
 	cache[bufnr] = hit
 	return hit
 end
 
--- Marker level plus structural level. A line where either kind of fold
--- starts gets ">", so two folds of the same level side by side stay two
--- folds. Filetypes without a scanner fold on markers alone.
-function M.level()
-	local lnum = vim.v.lnum
-	local hit = buffer_levels(vim.api.nvim_get_current_buf())
-	local level = (hit.marker[lnum] or 0) + (hit.struct[lnum] or 0)
-	if level > 0 and (hit.marker_starts[lnum] or hit.struct_starts[lnum]) then
-		return '>' .. level
+local function rescan_later(bufnr)
+	local timer = timers[bufnr]
+	if not timer then
+		timer = vim.uv.new_timer()
+		timers[bufnr] = timer
 	end
-	return tostring(level)
+	timer:stop()
+	timer:start(PAUSE, 0, function()
+		vim.schedule(function()
+			if not api.nvim_buf_is_loaded(bufnr) then
+				return
+			end
+			scan(bufnr)
+			local count = api.nvim_buf_line_count(bufnr)
+			for _, win in ipairs(vim.fn.win_findbuf(bufnr)) do
+				if vim.wo[win].foldmethod == 'expr' then
+					vim._foldupdate(win, 0, count)
+				end
+			end
+		end)
+	end)
+end
+
+function M.level()
+	local bufnr = api.nvim_get_current_buf()
+	local hit = cache[bufnr]
+	if not hit then
+		hit = scan(bufnr)
+	elseif hit.tick ~= api.nvim_buf_get_changedtick(bufnr) then
+		if vim._foldupdate and api.nvim_buf_line_count(bufnr) > BIG then
+			hit.tick = api.nvim_buf_get_changedtick(bufnr)
+			rescan_later(bufnr)
+		else
+			hit = scan(bufnr)
+		end
+	end
+	return hit.expr[vim.v.lnum] or '0'
 end
 
 local function char_at(text, index)
@@ -202,11 +243,26 @@ function M.text()
 end
 
 function M.setup()
-	vim.opt.foldtext = 'v:lua.require("config.folds").text()'
-	vim.api.nvim_create_autocmd('BufUnload', {
-		group = vim.api.nvim_create_augroup('config_folds', { clear = true }),
+	_G.Config.foldlevel = M.level
+	_G.Config.foldtext = M.text
+	vim.opt.foldtext = 'v:lua.Config.foldtext()'
+	local group = vim.api.nvim_create_augroup('config_folds', { clear = true })
+	vim.api.nvim_create_autocmd({ 'BufUnload', 'FileType' }, {
+		group = group,
 		callback = function(ev)
 			cache[ev.buf] = nil
+			if ev.event == 'BufUnload' and timers[ev.buf] then
+				timers[ev.buf]:stop()
+				timers[ev.buf]:close()
+				timers[ev.buf] = nil
+			end
+		end,
+	})
+	vim.api.nvim_create_autocmd('OptionSet', {
+		group = group,
+		pattern = 'foldmarker',
+		callback = function()
+			cache = {}
 		end,
 	})
 end

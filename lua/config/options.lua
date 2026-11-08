@@ -88,7 +88,7 @@ o.copyindent = true
 
 o.foldlevelstart = 999
 o.foldmethod = 'expr'
-o.foldexpr = 'v:lua.require("config.folds").level()'
+o.foldexpr = 'v:lua.Config.foldlevel()'
 -- One column: - where an open fold starts, + on a closed fold, and │ on
 -- every line inside a fold. foldinner keeps nested folds from showing
 -- their level as digits, which ran into the line numbers.

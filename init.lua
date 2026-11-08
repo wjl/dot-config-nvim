@@ -51,6 +51,11 @@ vim.g.markdown_fenced_languages = {
 	'diff',
 }
 
+-- Functions that option expressions call ('foldexpr', 'statuscolumn').
+-- Neovim runs those once per line, and v:lua.Config.name() costs about a
+-- third of v:lua.require("module").name().
+_G.Config = {}
+
 require('config.options')
 require('config.highlights').setup()
 require('config.folds').setup()

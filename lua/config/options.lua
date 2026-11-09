@@ -3,9 +3,9 @@ local o = vim.opt
 -- Modelines can execute editor commands from a file.
 o.modeline = false
 
--- Read every file as UTF-8. Do not guess latin1.
+-- Read every file as UTF-8. Do not guess latin1, and do not hide a byte
+-- order mark: one shows as <feff> and goes away when deleted.
 o.fileencodings = {}
-o.fileformats = { 'unix', 'dos', 'mac' }
 
 -- Start on the dark page. :set background=light switches folio.
 -- A terminal that advertises a light background does not override this.
@@ -81,10 +81,13 @@ o.switchbuf = { 'usetab', 'newtab' }
 
 o.splitbelow = true
 o.splitright = true
+-- Opening or closing a split leaves the text where it is on screen.
+o.splitkeep = 'screen'
 
 o.mouse = 'a'
--- Right click opens the menu where the pointer is, without moving the cursor.
-o.mousemodel = 'popup'
+-- Right click moves the cursor to the pointer (unless it is inside the
+-- selection) and opens the menu there. The menu is set up in files.lua.
+o.mousemodel = 'popup_setpos'
 
 o.selection = 'exclusive'
 

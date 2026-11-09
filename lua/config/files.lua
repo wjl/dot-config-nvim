@@ -74,8 +74,63 @@ function M.find(arg)
 	return vim.fn.matchfuzzy(files, arg)
 end
 
+-- The file named under the cursor: the netrw entry, or <cfile> found
+-- the way gf finds it. nil when there is no such readable file.
+local function file_here()
+	if vim.bo.filetype == 'netrw' then
+		local word = vim.fn['netrw#Call']('NetrwGetWord')
+		if word == '' or word:sub(-1) == '/' then
+			return nil
+		end
+		return (vim.b.netrw_curdir or vim.fn.getcwd()) .. '/' .. word
+	end
+	local name = vim.fn.expand('<cfile>')
+	if name == '' then
+		return nil
+	end
+	local found = vim.fn.findfile(name)
+	if found == '' and vim.fn.filereadable(name) == 1 then
+		found = name
+	end
+	return found ~= '' and vim.fn.fnamemodify(found, ':p') or nil
+end
+
+-- Right-click menu items.
+function M.open_tab(background)
+	local path = file_here()
+	if not path then
+		return
+	end
+	if background then
+		require('config.tabs').background(path)
+	else
+		vim.cmd('tabedit ' .. vim.fn.fnameescape(path))
+	end
+end
+
+local function menu()
+	-- Ours go first. Neovim's own items stay, minus the pointer to the
+	-- help on turning the mouse off.
+	vim.cmd([[
+		silent! aunmenu PopUp.How-to\ disable\ mouse
+		silent! aunmenu PopUp.-2-
+		anoremenu 1.1 PopUp.Open\ in\ new\ tab <Cmd>lua require('config.files').open_tab(false)<CR>
+		anoremenu 1.2 PopUp.Open\ in\ background\ tab <Cmd>lua require('config.files').open_tab(true)<CR>
+		anoremenu 1.3 PopUp.-files- <Nop>
+	]])
+	vim.api.nvim_create_autocmd('MenuPopup', {
+		group = vim.api.nvim_create_augroup('config_menu', { clear = true }),
+		callback = function()
+			local state = file_here() and 'enable' or 'disable'
+			vim.cmd('amenu ' .. state .. ' PopUp.Open\\ in\\ new\\ tab')
+			vim.cmd('amenu ' .. state .. ' PopUp.Open\\ in\\ background\\ tab')
+		end,
+	})
+end
+
 function M.setup()
 	vim.keymap.set('n', '-', up, { silent = true })
+	menu()
 	_G.Config.find = M.find
 	vim.o.findfunc = 'v:lua.Config.find'
 	vim.api.nvim_create_autocmd('CmdlineEnter', {

@@ -84,6 +84,19 @@ function M.setup()
 		end,
 	})
 
+	-- 'autoread' reloads a file changed outside Neovim when it has no
+	-- unsaved edits (with unsaved edits Neovim asks). Neovim only looks
+	-- after a shell command or :checktime, so look on focus, on switching
+	-- buffers or windows, and after 'updatetime' idle. Each look is a stat.
+	vim.api.nvim_create_autocmd({ 'FocusGained', 'BufEnter', 'WinEnter', 'CursorHold', 'CursorHoldI' }, {
+		group = group,
+		callback = function()
+			if vim.fn.getcmdwintype() == '' and vim.fn.mode() ~= 'c' then
+				vim.cmd('silent! checktime')
+			end
+		end,
+	})
+
 	-- Command-line completion as you type, for : commands and / ? searches.
 	vim.api.nvim_create_autocmd('CmdlineChanged', {
 		group = group,

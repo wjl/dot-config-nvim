@@ -83,6 +83,15 @@ function M.setup()
 			vim.cmd('silent! lcd %:p:h')
 		end,
 	})
+
+	-- Command-line completion as you type, for : commands and / ? searches.
+	vim.api.nvim_create_autocmd('CmdlineChanged', {
+		group = group,
+		pattern = { ':', '/', '?' },
+		callback = function()
+			vim.fn.wildtrigger()
+		end,
+	})
 end
 
 return M

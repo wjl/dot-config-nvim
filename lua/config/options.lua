@@ -118,7 +118,22 @@ vim.filetype.add({
 	},
 })
 
-o.wildmode = 'longest:full'
+-- Command-line completion. The menu opens by itself as you type (the
+-- CmdlineChanged autocmd in autocmds.lua), without filling anything in.
+-- Then Tab fills in what all the matches share, and Tab again steps
+-- through them. fuzzy: :e mkf finds Makefile, :b gut finds gutter.lua.
+o.wildmode = 'noselect:lastused,longest:full,full'
+o.wildoptions:append('fuzzy')
+
+-- Insert-mode completion. The menu opens by itself from words in open
+-- buffers once typing pauses for autocompletedelay, and inserts nothing
+-- until you pick: Ctrl-N / Ctrl-P or Down / Up to choose, Enter to take
+-- it, Ctrl-E to close it. Tab still inserts a tab. :set noautocomplete
+-- turns it off; Ctrl-N / Ctrl-P keep these settings either way.
+o.autocomplete = true
+o.autocompletedelay = 500
+o.complete = { '.^5', 'w^5', 'b^5', 'u^5' }
+o.completeopt = { 'menuone', 'noselect', 'popup', 'fuzzy' }
 vim.cmd('set wildcharm=<C-z>')
 
 if vim.fn.has('gui') == 1 then

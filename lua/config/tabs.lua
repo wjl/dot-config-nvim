@@ -238,8 +238,11 @@ function M.setup()
 	})
 
 	-- nvim a b c: a tab each, unless -o, -O, -p, or -d already arranged them.
+	-- nested: the files opened here get their own events (filetype,
+	-- syntax), which an autocmd does not run for otherwise.
 	api.nvim_create_autocmd('VimEnter', {
 		group = group,
+		nested = true,
 		callback = function()
 			if vim.fn.argc() > 1 and #api.nvim_list_tabpages() == 1 and #windows(0) == 1 and not vim.wo.diff then
 				vim.cmd('silent tab all')

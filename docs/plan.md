@@ -213,6 +213,9 @@ Decided:
 - Arrow keys: Left/Right wrap across lines (`whichwrap`), **kept**. Up/Down now move by screen row on wrapped lines (`gk`/`gj`) and keep the remembered column; with a count they move by file line; in insert mode the completion menu keeps them while open.
 - `tildeop`: **kept**.
 - `numberwidth=1`, `listchars` (no `multispace`: alignment inside a line is done with spaces on purpose), `scrolloff=5` / `sidescrolloff=10`: **kept**. `breakindentopt=list:-1`: **on**, to try; a wrapped list item lines up under its text.
+- Command-line completion: `wildmode=noselect:lastused,longest:full,full` with `wildoptions+=fuzzy`, and the menu opens as you type (`wildtrigger()` on CmdlineChanged for `:`, `/`, `?`). Tab fills in the shared part, Tab again steps through. Until an entry is selected the arrows keep their command-line meaning (history, cursor); once one is, they move through the menu and directories.
+- Insert completion: `autocomplete` **on, to try**, `autocompletedelay=500`, `complete=.^5,w^5,b^5,u^5`, `completeopt=menuone,noselect,popup,fuzzy`. Nothing is inserted until you pick (Ctrl-N/Ctrl-P or Down/Up, Enter); Enter with nothing picked is a newline; Tab is still a tab.
+- `nvim a b c` tabs are opened from a `nested` VimEnter autocmd, so each file gets its filetype and syntax.
 - Tab titles are the file name, or as many parent directories as it takes to be unique among the open tabs (`x/Makefile`, `y/Makefile`). `:TabSort` compares full paths a directory at a time, so files in one directory stay together.
 - Tab line: the current tab is never cut off; it shows whole with a neighbor on each side, `‹N` / `N›` count the tabs hidden at each end, and the mouse wheel over the tab line scrolls it without changing tabs (until the next tab change).
 - `colorcolumn=+1`: **kept**. It marks the first column past `'textwidth'` (the wall), and shows nothing while `'textwidth'` is 0, which is the default; filetypes like gitcommit set it.

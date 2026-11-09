@@ -29,14 +29,26 @@ function M.setup()
 	-- then center the cursor line.
 	vim.keymap.set('n', '<C-L>', '<Cmd>nohlsearch|diffupdate|normal! <C-L>zz<CR>')
 
-	-- While the completion menu is open, Up and Down move through the
-	-- matches and Left and Right walk directories. Otherwise the arrows
-	-- keep their normal command-line meaning.
+	-- Command line. The completion menu opens by itself as you type (see
+	-- options.lua). Until you pick an entry (Tab, or an arrow once you are
+	-- in the list), the arrows keep their command-line meaning: Up and Down
+	-- walk history, Left and Right move the cursor. Once an entry is
+	-- selected, Up and Down move through the matches and Left and Right
+	-- walk directories.
 	-- An expr map already translates <Key> names. vim.keycode() hands it
 	-- the raw bytes, and those show up as <80>ku on the command line.
-	local function wild(in_menu, otherwise)
+	local function wild(in_menu, key)
 		return function()
-			return vim.fn.wildmenumode() == 1 and in_menu or otherwise
+			if vim.fn.wildmenumode() ~= 1 then
+				return key
+			end
+			local info = vim.fn.cmdcomplete_info()
+			if info.selected ~= nil and info.selected >= 0 then
+				return in_menu
+			end
+			-- Close the menu (nothing was picked, so nothing changes), then
+			-- the plain key.
+			return '<C-E>' .. key
 		end
 	end
 	vim.keymap.set('c', '<Up>', wild('<Left>', '<Up>'), { expr = true })

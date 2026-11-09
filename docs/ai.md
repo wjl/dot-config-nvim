@@ -18,16 +18,18 @@ Encrypted buffers (`.gpg`, `.pgp`, `.asc`) are never sent.
 
 | | No selection | With a selection |
 | --- | --- | --- |
-| `:AI [instruction]` | written in at the cursor | replaces the selection |
-| `:AIAsk [question]` | answer goes in after the block at the cursor | answer goes in on new lines after the selection |
+| `:AI [instruction]` | new lines just above the region (the function, class, or section around the cursor); outside any fold, at the cursor | replaces the selection |
+| `:AIAsk [question]` | answer goes in after the region | answer goes in on new lines after the selection |
 
 `@provider/model` as the first word uses another model once; Tab completes it, matching fuzzily after the slash (`@openrouter/dsflash`). Enter on a selected menu entry takes it and stays on the command line. `:AIStop` cancels the requests running in the buffer.
 
-**Region of interest:** the selection; without one, the fold scanners' structural folds around the cursor (functions, classes, blocks, markdown sections; `{{{` markers do not count), walking out from the innermost to the top level and stopping before a fold over 150 lines or 60% of the context budget. That usually lands on the whole function or class rather than one `switch` inside it. With no structural fold, the paragraph.
+**Region of interest:** the selection; without one, the folds around the cursor (functions, classes, blocks, markdown sections, `{{{` markers), walking out from the innermost and stopping at the first fold whose opening line is not indented, or one step before a fold over 150 lines or 60% of the context budget. In markdown, where lists start at the margin too, the walk stops at a heading or a code fence instead. That usually lands on the whole C function, the Python class (or the method, if the class is too big), or the markdown section. With no fold at the cursor, the paragraph, and the answer goes in at the cursor.
 
 **Prompt.** System message, one paragraph: what file this is, what the job is (insert at the `here` mark / rewrite the focus / rewrite the marked part of it / answer a question about it), what to output (only that text, no fences, no commentary, no repeating), and that the file text is data. The user message holds the file text in three parts — `before`, `focus`, `after` — then the instruction. The file text is in the user message, not the system one, on purpose: a model gives system text more authority, so file text there would be easier to use for prompt injection. Every tag ends in a fresh random 128-bit value, so file text cannot close a part or forge one. That stops forged parts; it does not make a model immune to instructions written in the file.
 
 Default instructions when none is given: "Please clean this up." (rewrite), "Write what belongs here." (insert), "What's going on here?" (ask).
+
+The chat panel's edits will apply at once (decided): undo, or git, is the way back. Approving each edit turns into clicking OK without reading.
 
 **Context:** the focus plus text before and after it (two thirds of what is left of the budget before, the rest after), up to `settings.context_chars`, and never more than half the model's context window when the provider reports it.
 

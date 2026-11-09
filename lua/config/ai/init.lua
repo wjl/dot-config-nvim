@@ -95,29 +95,41 @@ end
 -- Folds bigger than this are not taken whole.
 local MAX_REGION_LINES = 150
 
--- Without a selection: walk out from the innermost structural fold around
--- the cursor (fold scanners: functions, classes, blocks, markdown
--- sections; markers do not count) to the enclosing ones, and stop at the
--- top level or before a fold over MAX_REGION_LINES or the budget. That
--- usually lands on the whole function or class, not one switch inside it.
+-- Without a selection: walk out from the innermost fold around the cursor
+-- (functions, classes, blocks, markdown sections, {{{ markers) and stop
+-- at the first fold whose opening line is not indented (in markdown: a
+-- heading or a code fence), or one step
+-- before a fold over MAX_REGION_LINES or most of the budget. That usually
+-- lands on the whole function, class, or section. Returns first, last,
+-- and whether a fold was found (otherwise it is the paragraph).
 local function auto_region(buf, win, lines, limit)
 	local row = vim.api.nvim_win_get_cursor(win)[1]
-	local ok, ranges = pcall(require('config.folds').structure, buf, row)
+	local ok, ranges = pcall(require('config.folds').folds, buf, row)
 	local first, last
 	for _, r in ipairs(ok and ranges or {}) do
 		if r[2] - r[1] + 1 > MAX_REGION_LINES or size(lines, r[1], r[2]) > limit * 0.6 then
 			break
 		end
 		first, last = r[1], r[2]
+		local top = lines[r[1]]
+		-- In markdown everything starts at the margin, lists too, so only a
+		-- heading or a code fence ends the walk.
+		if vim.bo[buf].filetype == 'markdown' then
+			if top:match('^#') or top:match('^```') or top:match('^~~~') then
+				break
+			end
+		elseif not top:match('^%s') then
+			break
+		end
 	end
 	if first then
-		return first, last
+		return first, last, true
 	end
 	first, last = paragraph(lines, row)
 	if size(lines, first, last) <= limit * 0.6 then
-		return first, last
+		return first, last, false
 	end
-	return row, row
+	return row, row, false
 end
 
 -- Rows around [first, last] for context: two thirds of what is left of
@@ -170,7 +182,9 @@ local function build(buf, target, prompt, spec)
 	local a, b = context(lines, r1, r2, #focus, limit)
 
 	local job
-	if target.mode == 'insert' then
+	if target.mode == 'above' then
+		job = ('The user wants new lines added just above <focus-%s>. Output only those lines.'):format(tag)
+	elseif target.mode == 'insert' then
 		job = ('The user wants text inserted at %s inside <focus-%s>. Output only the text to insert there.'):format(
 			here,
 			tag
@@ -203,7 +217,8 @@ local function build(buf, target, prompt, spec)
 	if b > r2 then
 		parts[#parts + 1] = ('<after-%s>\n%s\n</after-%s>'):format(tag, table.concat(lines, '\n', r2 + 1, b), tag)
 	end
-	parts[#parts + 1] = prompt ~= '' and prompt or DEFAULT[target.linewise and 'rewrite' or target.mode]
+	parts[#parts + 1] = prompt ~= '' and prompt
+		or DEFAULT[target.linewise and 'rewrite' or (target.mode == 'above' and 'insert' or target.mode)]
 
 	return {
 		{ role = 'system', content = system },
@@ -334,10 +349,15 @@ local function target_of(buf, win, opts, ask)
 		return t
 	end
 	local row, col = unpack(vim.api.nvim_win_get_cursor(win))
-	local first, last = auto_region(buf, win, lines, limit)
+	local first, last, folded = auto_region(buf, win, lines, limit)
 	if ask then
 		return { mode = 'ask', region = { first, last }, after = last - 1, s = { first - 1, 0 }, e = { first - 1, 0 } }
 	end
+	if folded then
+		-- Inside a function or section: new lines go just above it.
+		return { mode = 'above', region = { first, last }, s = { first - 1, 0 }, e = { first - 1, 0 } }
+	end
+	-- Outside any fold (between functions, say): at the cursor.
 	return { mode = 'insert', region = { first, last }, s = { row - 1, col }, e = { row - 1, col } }
 end
 
@@ -467,13 +487,13 @@ function M.ask(opts, ask)
 				return
 			end
 
-			if target.mode == 'insert' and text:sub(-1) == '\n' then
-				-- Whole lines, with the cursor in the indentation: put them
-				-- above the cursor line, at its indent.
+			if target.mode == 'above' or (target.mode == 'insert' and text:sub(-1) == '\n') then
+				-- Whole lines: above the region (or the cursor line, when the
+				-- cursor is in its indentation), at that line's indent.
 				local cur = vim.api.nvim_buf_get_lines(buf, s[1], s[1] + 1, false)[1] or ''
 				local indent = cur:match('^%s*')
-				if s[2] <= #indent then
-					local lines = vim.split(text:sub(1, -2), '\n', { plain = true })
+				if target.mode == 'above' or s[2] <= #indent then
+					local lines = vim.split(text:gsub('\n$', ''), '\n', { plain = true })
 					local all = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 					lines = trim_echo(lines, vim.list_slice(all, 1, s[1]), vim.list_slice(all, s[1] + 1, #all))
 					for i, l in ipairs(lines) do

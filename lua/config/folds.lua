@@ -103,7 +103,7 @@ local function scan(bufnr)
 		local level = (marker[i] or 0) + (struct[i] or 0)
 		expr[i] = answer(level, level > 0 and (marker_starts[i] or struct_starts[i]))
 	end
-	local hit = { tick = api.nvim_buf_get_changedtick(bufnr), expr = expr, struct = struct, struct_starts = struct_starts }
+	local hit = { tick = api.nvim_buf_get_changedtick(bufnr), expr = expr }
 	cache[bufnr] = hit
 	return hit
 end
@@ -131,15 +131,21 @@ local function rescan_later(bufnr)
 	end)
 end
 
--- The structural folds (no markers) around line row, innermost first, as
--- { first, last } pairs. For callers that want "the function I am in".
-function M.structure(bufnr, row)
+-- The folds around line row (structure and markers alike), innermost
+-- first, as { first, last } pairs, read from the foldexpr answers.
+function M.folds(bufnr, row)
 	local hit = cache[bufnr]
-	if not hit or hit.tick ~= api.nvim_buf_get_changedtick(bufnr) or not hit.struct then
+	if not hit or hit.tick ~= api.nvim_buf_get_changedtick(bufnr) then
 		hit = scan(bufnr)
 	end
-	local level, starts = hit.struct, hit.struct_starts
-	local n = #hit.expr
+	local expr = hit.expr
+	local n = #expr
+	local level, starts = {}, {}
+	for i = 1, n do
+		local e = expr[i]
+		starts[i] = e:sub(1, 1) == '>'
+		level[i] = tonumber(starts[i] and e:sub(2) or e) or 0
+	end
 	local function at(i)
 		return level[i] or 0
 	end

@@ -78,7 +78,7 @@ Headless checks on 2026-11-06, after `VimEnter` (netrw does not build a listing 
 
 Not brought over from vinegar: `.` to put the path on the command line, `y.` to yank it, and `~` to go home. Dotfiles stay visible.
 
-This phase is in the editor. It is not signed off until a real editing session. The things to look at are the status line, `-`, and `:TabSort`.
+Signed off: used in real editing sessions since (status line, `-`, `:TabSort`).
 
 `selection=exclusive` stays, with `virtualedit` including `onemore`, so the cursor can sit one past the last character and that character can be part of a selection. Half-open ranges are the reason to keep it. Some visual operations that assume an inclusive selection feel one character short. That is the tradeoff, and it was chosen on purpose.
 
@@ -165,7 +165,7 @@ Speed. Neovim calls `'foldexpr'` once per line, so the per-call cost matters as 
 
 ## Phase 5 — GPG
 
-Written: `lua/config/gpg.lua`, replacing vim-gnupg. Not signed off until you have opened, edited, and saved a real encrypted file of your own.
+Written: `lua/config/gpg.lua`, replacing vim-gnupg. Signed off: an existing encrypted file, and new files in both passphrase and recipient mode, opened, edited, and saved.
 
 - File patterns: `*.gpg`, `*.pgp`, `*.asc`. A file that is not encrypted (a public key, a signature, a keyring) is read and written as an ordinary file.
 - Read: `gpg --decrypt`, ciphertext in and plaintext out over pipes. The status output gives the key ids (`ENC_TO`) or a passphrase (`NEED_PASSPHRASE_SYM`), and whether the file was ASCII armor.
@@ -245,10 +245,18 @@ Designed in `docs/ai.md`: providers in `lua/config/ai/settings.lua`, `provider/m
 
 ## Open questions
 
-Answered already: own status line. Change gutter in phase 6. PaperColor light is the quality bar, and phase 3 is a set of schemes, not a port of that one palette. Drop indent-object and characterize. Keep `selection=exclusive`. Keep `switchbuf=usetab,newtab`. `:TabSort` is the extra command from this round. Vinegar's `.`, `y.`, and `~` were not carried over.
+None. Every question this plan raised was answered with you, and the answers are in the phase sections above.
 
-| Question | Blocks |
-| --- | --- |
-| Persistent undo? `smoothscroll`? A clear-highlight key? A spell toggle? | Phase 7 |
-| For new `.gpg` files, ask every time, or default to symmetric? | Phase 5 |
-| Which AI tools, and inline versus a buffer versus a terminal? | Phase 8 |
+## Later, if wanted
+
+Ideas that came up and were set aside on purpose:
+
+- A self-built Neovim bundle per architecture (x86-64, arm64, maybe x86 and Windows), so even the editor needs no install.
+- Spell checking per paragraph in mixed-language text (for now: `:setlocal spelllang=…`, or `en,fr` together).
+- A case-preserving `:S` substitute (infercase covered the real need).
+- More than one row of tabs (Neovim's tab line is one row; scrolling covers it).
+- Fill-in-the-middle completion APIs for ghost text, if a provider makes them worth it.
+- Folding Lua inside Vimscript `lua << EOF` blocks.
+- Dropping markdown's indented-code-block rule, if tab-indented list text ever shows up colored as code.
+
+Known rough edges: after `:only` in a tab with splits, the remaining window can duplicate another tab's file; in the chat panel, the word menu can show for a moment before the `@model` list replaces it.

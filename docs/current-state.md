@@ -177,7 +177,7 @@ Two of these are easy to forget and worth a conscious yes:
 | `<Space>` | `za` |
 | `<Enter>` | `zx` (recompute folds under the cursor and honor `foldlevel`) |
 | `Q` | `gq` in normal and visual. This replaces Ex mode |
-| `gS` | Syntax group under the cursor. Extend it later to show treesitter captures when those are on |
+| `gS` | Syntax group under the cursor. For treesitter captures and everything else, Neovim's own `:Inspect` |
 | arrows in command line | Rotated while the wildmenu is open |
 | netrw `I` | Banner toggle, once we hide the banner by default |
 

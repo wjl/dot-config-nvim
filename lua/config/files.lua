@@ -41,8 +41,49 @@ function M.background()
 	require('config.tabs').background((vim.b.netrw_curdir or vim.fn.getcwd()) .. '/' .. word)
 end
 
+-- :find with fuzzy matching: :find samini finds sample.ini anywhere below
+-- the current directory (which follows the current file; see the BufEnter
+-- lcd). The file list is gathered once per command line and skips .git
+-- and node_modules. It stops at LIMIT files, so :find in ~ stays quick.
+local LIMIT = 20000
+local files
+
+local function gather()
+	local list = {}
+	for name, kind in vim.fs.dir('.', {
+		depth = 32,
+		skip = function(dir)
+			return dir ~= '.git' and dir ~= 'node_modules'
+		end,
+	}) do
+		if kind == 'file' then
+			list[#list + 1] = name
+			if #list >= LIMIT then
+				break
+			end
+		end
+	end
+	return list
+end
+
+function M.find(arg)
+	files = files or gather()
+	if arg == '' then
+		return files
+	end
+	return vim.fn.matchfuzzy(files, arg)
+end
+
 function M.setup()
 	vim.keymap.set('n', '-', up, { silent = true })
+	_G.Config.find = M.find
+	vim.o.findfunc = 'v:lua.Config.find'
+	vim.api.nvim_create_autocmd('CmdlineEnter', {
+		group = vim.api.nvim_create_augroup('config_find', { clear = true }),
+		callback = function()
+			files = nil
+		end,
+	})
 	vim.api.nvim_create_autocmd('FileType', {
 		pattern = 'netrw',
 		callback = function(event)

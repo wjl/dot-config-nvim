@@ -20,6 +20,8 @@ o.sessionoptions:append('sesdir')
 
 o.ignorecase = true
 o.smartcase = true
+-- Completion keeps the case you typed: the + Theorem gives theorem.
+o.infercase = true
 
 o.scrolloff = 5
 o.sidescrolloff = 10
@@ -121,7 +123,8 @@ vim.filetype.add({
 -- Command-line completion. The menu opens by itself as you type (the
 -- CmdlineChanged autocmd in autocmds.lua), without filling anything in.
 -- Then Tab fills in what all the matches share, and Tab again steps
--- through them. fuzzy: :e mkf finds Makefile, :b gut finds gutter.lua.
+-- through them. fuzzy: :b gut finds gutter.lua. It does not apply to file
+-- names, so :e takes paths as usual; :find (files.lua) matches fuzzily.
 o.wildmode = 'noselect:lastused,longest:full,full'
 o.wildoptions:append('fuzzy')
 

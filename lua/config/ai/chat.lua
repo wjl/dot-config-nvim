@@ -105,6 +105,14 @@ local function flash(buf, first, last)
 	end, 1500)
 end
 
+-- Shown at the top of every panel. Display only: never sent.
+local HEADER = {
+	'> `/model [provider/model]` set or show the model · `/clear` start over · `/help`',
+	'> `@provider/model` as the first word: that model, for one message',
+	'> Enter (normal mode) sends · Ctrl-C or `:AIStop` stops · edits apply at once; `u` in the file undoes',
+	'',
+}
+
 local tools = {}
 local definitions = {}
 
@@ -471,9 +479,9 @@ function M.send(chat)
 	elseif cmd == 'clear' then
 		chat.messages = {}
 		vim.bo[chat.buf].modifiable = true
-		api.nvim_buf_set_lines(chat.buf, 0, -1, false, { '## You', '' })
+		api.nvim_buf_set_lines(chat.buf, 0, -1, false, vim.list_extend(vim.deepcopy(HEADER), { '## You', '' }))
 		mark_input(chat)
-		pcall(api.nvim_win_set_cursor, chat.win, { 2, 0 })
+		pcall(api.nvim_win_set_cursor, chat.win, { api.nvim_buf_line_count(chat.buf), 0 })
 		return
 	elseif cmd == 'model' then
 		if arg ~= '' then
@@ -556,7 +564,7 @@ function M.open(opts)
 	vim.bo[buf].filetype = 'markdown'
 	vim.bo[buf].bufhidden = 'hide'
 	pcall(api.nvim_buf_set_name, buf, ('AI chat %d'):format(api.nvim_tabpage_get_number(tab)))
-	api.nvim_buf_set_lines(buf, 0, -1, false, { '## You', '' })
+	api.nvim_buf_set_lines(buf, 0, -1, false, vim.list_extend(vim.deepcopy(HEADER), { '## You', '' }))
 	vim.cmd('topleft vsplit')
 	local win = api.nvim_get_current_win()
 	api.nvim_win_set_buf(win, buf)
@@ -588,7 +596,7 @@ function M.open(opts)
 	map('n', '<C-c>', function()
 		M.stop(chat)
 	end)
-	pcall(api.nvim_win_set_cursor, win, { 2, 0 })
+	pcall(api.nvim_win_set_cursor, win, { api.nvim_buf_line_count(buf), 0 })
 	vim.cmd('startinsert')
 end
 

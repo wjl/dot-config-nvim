@@ -9,6 +9,7 @@
 -- :AIStop                  cancel the requests running in this buffer
 -- :AIModel [name]          show or set the model for this session
 -- :AIChat [model]          the chat panel (lua/config/ai/chat.lua)
+-- :AIGhost …               ghost-text completion (lua/config/ai/ghost.lua)
 --
 -- The region of interest is the selection; without one, the enclosing
 -- function, class, or section (the largest structural fold around the
@@ -613,6 +614,7 @@ function M.setup()
 		complete = complete_model,
 	})
 	require('config.ai.chat').setup()
+	require('config.ai.ghost').setup()
 	vim.api.nvim_create_autocmd('BufWipeout', {
 		group = vim.api.nvim_create_augroup('config_ai', { clear = true }),
 		callback = function(ev)

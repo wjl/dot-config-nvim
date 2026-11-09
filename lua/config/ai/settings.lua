@@ -9,13 +9,18 @@
 -- Every provider here speaks the OpenAI chat completions API
 -- (<base_url>/chat/completions, and <base_url>/models for the model list).
 -- A provider may add `system`, text put in front of every system prompt
--- sent to it.
+-- sent to it, and `quick`, extra request fields for ghost-text completion.
 
 return {
 	providers = {
 		openrouter = {
 			base_url = 'https://openrouter.ai/api/v1',
 			key_env = 'OPENROUTER_API_KEY',
+			-- Extra request fields for ghost-text completion, which must be
+			-- quick: no thinking first (a thinking model can spend the whole
+			-- length budget before writing a word). This field is
+			-- OpenRouter's own; other providers may not accept it.
+			quick = { reasoning = { enabled = false } },
 		},
 		gemini = {
 			base_url = 'https://generativelanguage.googleapis.com/v1beta/openai',
@@ -33,9 +38,23 @@ return {
 		-- each call to a different model, so quality jumps around.
 		oneshot = 'openrouter/deepseek/deepseek-v4.1-flash',
 		chat = 'openrouter/deepseek/deepseek-v4.1-flash',
+		ghost = 'openrouter/deepseek/deepseek-v4.1-flash',
 	},
 
 	-- At most this much of the file is sent as context (about 4 characters
 	-- per token), and never more than half the model's context window.
 	context_chars = 24000,
+
+	-- Ghost-text completion (:AIGhost). Off until turned on per buffer, or
+	-- for every buffer with global = true.
+	ghost = {
+		global = false,
+		-- Ask after this long without typing (milliseconds).
+		delay = 4000,
+		-- Context sent: text before the cursor, and after it.
+		before_chars = 4000,
+		after_chars = 1500,
+		-- Longest suggestion, in tokens.
+		max_tokens = 200,
+	},
 }

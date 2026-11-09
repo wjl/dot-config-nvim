@@ -66,7 +66,8 @@ end
 --                         it, info.tool_calls the calls asked for, each
 --                         { id, name, arguments (JSON text) }, info.finish
 --                         the finish reason
--- extra.tools: OpenAI-style tool definitions.
+-- extra.tools: OpenAI-style tool definitions. extra.params: more fields for
+-- the request body (max_tokens, temperature, ...).
 -- Returns a handle with :cancel().
 function M.chat(spec, messages, cb, extra)
 	extra = extra or {}
@@ -88,6 +89,10 @@ function M.chat(spec, messages, cb, extra)
 	local request = { model = model, stream = true, messages = messages }
 	if extra.tools then
 		request.tools = extra.tools
+	end
+	-- Anything else for the request body: max_tokens, temperature, ...
+	for k, v in pairs(extra.params or {}) do
+		request[k] = v
 	end
 	local body = vim.json.encode(request)
 	local config = table.concat({

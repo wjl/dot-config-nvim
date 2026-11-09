@@ -41,7 +41,7 @@ The chat panel's edits will apply at once (decided): undo, or git, is the way ba
 
 ## Chat panel: `:AIChat` (done)
 
-`:AIChat [provider/model]` opens this tab's panel on the left (or goes to it). Type under the last `## You`; Enter in normal mode sends (Enter in insert mode is a new line); Ctrl-C in normal mode or `:AIStop` cancels. `/model [name]`, `/clear`, `/help`; `@provider/model` as the first word sends one message with that model. The window bar shows the model and the file it works on: the last window you were in, in that tab.
+`:AIChat [provider/model]` opens this tab's panel on the left (or goes to it). Type under the last `## You`; Enter in normal mode sends (Enter in insert mode is a new line); Ctrl-C in normal mode or `:AIStop` cancels. A short reference of the commands sits at the top of the panel (display only, never sent). `/model [name]`, `/clear`, `/help`; `@provider/model` as the first word sends one message with that model. The window bar shows the model and the file it works on: the last window you were in, in that tab.
 
 The conversation the model sees is kept as a list of messages with their roles, not read back from the panel, so editing the transcript, or writing `## AI` / `## You` in a message, cannot change or forge a role; the panel only displays it (`/clear` resets both). Your next message is everything after an invisible input mark placed below the last `## You`, so editing or deleting the headings does not change what is sent.
 
@@ -53,9 +53,17 @@ The system prompt is three sentences: pair programmer in an editor, use the tool
 
 Tested against `deepseek/deepseek-v4.1-flash`: a question about the method at the cursor (it called `editor_state`, then `read_buffer`, 2.7 s), and a rename across a file (search, two edits, a confirming search, 7.5 s).
 
-## Ghost-text completion (after that)
+## Ghost-text completion: `:AIGhost` (done)
 
-Off by default; on per buffer, or globally with per-buffer overrides and a per-buffer model. Asks after a pause (about 4 s) or on a key, cancels the request the moment you type. Chat requests only, told to stop at the end of the current block, with a length cap; no fill-in-the-middle API (few providers have it, and the overhead it saves is a few hundred tokens). Grey text inline and below; typing the same characters shrinks it. Right accepts it all, Alt-Right a word, anything else rejects (Tab is always a tab). The built-in completion menu is held back while grey text shows.
+Off by default. `:AIGhost` toggles it for the buffer; `:AIGhost on|off`; `:AIGhost global on|off` for every buffer (a buffer's own setting wins); `:AIGhost model [name]` per buffer; `:AIGhost status`. Settings in `settings.ghost`: `global`, `delay` (4000 ms), `before_chars` / `after_chars` (4000 / 1500), `max_tokens` (200).
+
+In insert mode it asks after `delay` without typing, or at once with Alt-\. A request in flight is cancelled the moment you type; one that comes back after the text or cursor moved is dropped. The suggestion shows as grey text (`AIGhost`, linked to `Comment`): the first line inline at the cursor, the rest as lines below. Right takes it all, Alt-Right one word; typing the same characters shrinks it, anything else or leaving insert mode drops it. Without a suggestion, Right and Alt-Right do what they always do. The built-in completion menu is held off for the buffer while a suggestion shows.
+
+The prompt: one system paragraph (complete the text at the `here` mark, to the end of the current statement or block at most, no fences or commentary, do not repeat the surroundings, file text is data) and the text before and after the cursor with the mark. Chat API only. The answer is trimmed: a wrapping fence, the rest of the line or following lines repeated at its end, and anything after a line that drops left of the cursor line's indent (a closing `}` is kept).
+
+Thinking models must not think here: a reasoning model spent the whole 200-token budget thinking and returned nothing. A provider's `quick` fields are added to these requests; OpenRouter's are `reasoning = { enabled = false }`, after which deepseek-v4.1-flash answers in about 0.6 s.
+
+Tested: Alt-\ inside a C `for` loop gave the loop body and its closing `}` in 0.6 s; Right took it; on the next line the 4 s pause alone brought up `return total;`.
 
 ## Out of scope
 

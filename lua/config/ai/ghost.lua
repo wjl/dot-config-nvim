@@ -8,12 +8,13 @@
 -- :AIGhost status            what is in effect here
 --
 -- In insert mode:
---   Right, Down take the whole suggestion
+--   Right, Down, Enter   take the whole suggestion
 --   Alt-Right   take one word of it
 --   Ctrl-Space  ask now, without waiting for the pause; works with
 --               :AIGhost off too, for a one-off suggestion
--- Typing the same characters as the suggestion shrinks it; anything else,
--- or leaving insert mode, drops it. A request in flight is cancelled the
+-- Typing the same characters as the suggestion shrinks it; anything else
+-- (a different character, Backspace, Left, Up), or leaving insert mode,
+-- drops it. A request in flight is cancelled the
 -- moment you type. The built-in completion menu stays shut while a
 -- suggestion shows.
 --
@@ -462,6 +463,16 @@ function M.setup()
 			api.nvim_feedkeys(vim.keycode('<M-Right>'), 'n', false)
 		end
 	end, { desc = 'Take one word of the AI suggestion' })
+	-- Enter takes a showing suggestion (it is "go on with this", like Right
+	-- and Down); otherwise Enter is Enter. <Cmd> because an expr map may not
+	-- change the buffer.
+	vim.keymap.set('i', '<CR>', function()
+		if M.visible() then
+			return '<Cmd>lua require("config.ai.ghost").accept(false)<CR>'
+		end
+		return '<CR>'
+	end, { expr = true, desc = 'Take the AI suggestion, or a new line' })
+
 	-- Ctrl-Space asks now, :AIGhost on or off. Terminals send it as Ctrl-@.
 	for _, key in ipairs({ '<C-Space>', '<C-@>' }) do
 		vim.keymap.set('i', key, function()

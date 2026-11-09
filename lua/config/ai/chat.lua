@@ -3,8 +3,9 @@
 --
 -- :AIChat [provider/model]   open (or go to) this tab's chat panel, on the left
 --
--- In the panel, type under the last "## You" heading. Enter in normal mode
--- sends it (Enter in insert mode is a new line). Ctrl-C in normal mode, or
+-- In the panel, type under the last "## You" heading (the headings are
+-- decoration: what is sent is what you typed since the reply). Enter in
+-- normal mode sends it (Enter in insert mode is a new line). Ctrl-C in normal mode, or
 -- :AIStop, cancels a reply. Messages starting with / are commands:
 --   /model [provider/model]   show or set the model for this panel
 --   /clear                    start the conversation over
@@ -329,9 +330,18 @@ local function title(chat)
 	vim.wo[chat.win].winbar = (' AI chat  %s  → %s'):format(chat.model, on):gsub('%%', '%%%%')
 end
 
+-- Where your next message starts: an extmark on the line after the last
+-- "## You". It follows edits, so the headings are only decoration: editing
+-- or deleting them, or typing one inside a message, changes nothing.
+local function mark_input(chat)
+	local row = api.nvim_buf_line_count(chat.buf) - 1
+	chat.input = api.nvim_buf_set_extmark(chat.buf, ns, row, 0, { id = chat.input, right_gravity = false })
+end
+
 local function prompt_line(chat)
 	gap(chat, 2)
 	append(chat, '## You\n')
+	mark_input(chat)
 	chat.last = nil
 	if chat.win and api.nvim_win_is_valid(chat.win) then
 		vim.bo[chat.buf].modifiable = true
@@ -339,14 +349,15 @@ local function prompt_line(chat)
 end
 
 -- The text typed under the last "## You" heading.
+-- Everything from the input mark to the end of the panel.
 local function typed(chat)
-	local lines = api.nvim_buf_get_lines(chat.buf, 0, -1, false)
-	for i = #lines, 1, -1 do
-		if lines[i] == '## You' then
-			return vim.trim(table.concat(lines, '\n', i + 1)), i
-		end
+	local pos = chat.input and api.nvim_buf_get_extmark_by_id(chat.buf, ns, chat.input, {})
+	if not pos or not pos[1] then
+		return ''
 	end
-	return vim.trim(table.concat(lines, '\n')), 0
+	local last = api.nvim_buf_line_count(chat.buf)
+	local lines = api.nvim_buf_get_text(chat.buf, pos[1], pos[2], last - 1, -1, {})
+	return vim.trim(table.concat(lines, '\n'))
 end
 
 -- The conversation loop -----------------------------------------------------
@@ -461,6 +472,7 @@ function M.send(chat)
 		chat.messages = {}
 		vim.bo[chat.buf].modifiable = true
 		api.nvim_buf_set_lines(chat.buf, 0, -1, false, { '## You', '' })
+		mark_input(chat)
 		pcall(api.nvim_win_set_cursor, chat.win, { 2, 0 })
 		return
 	elseif cmd == 'model' then
@@ -564,6 +576,7 @@ function M.open(opts)
 		messages = {},
 	}
 	chats[tab] = chat
+	mark_input(chat)
 	title(chat)
 
 	local map = function(mode, key, fn)

@@ -103,7 +103,7 @@ local function scan(bufnr)
 		local level = (marker[i] or 0) + (struct[i] or 0)
 		expr[i] = answer(level, level > 0 and (marker_starts[i] or struct_starts[i]))
 	end
-	local hit = { tick = api.nvim_buf_get_changedtick(bufnr), expr = expr }
+	local hit = { tick = api.nvim_buf_get_changedtick(bufnr), expr = expr, struct = struct, struct_starts = struct_starts }
 	cache[bufnr] = hit
 	return hit
 end
@@ -129,6 +129,35 @@ local function rescan_later(bufnr)
 			end
 		end)
 	end)
+end
+
+-- The structural folds (no markers) around line row, innermost first, as
+-- { first, last } pairs. For callers that want "the function I am in".
+function M.structure(bufnr, row)
+	local hit = cache[bufnr]
+	if not hit or hit.tick ~= api.nvim_buf_get_changedtick(bufnr) or not hit.struct then
+		hit = scan(bufnr)
+	end
+	local level, starts = hit.struct, hit.struct_starts
+	local n = #hit.expr
+	local function at(i)
+		return level[i] or 0
+	end
+	local ranges = {}
+	for k = at(row), 1, -1 do
+		-- A level-k fold starts where the level rises to k from below, or
+		-- where a new level-k fold starts right after a sibling.
+		local first = row
+		while first > 1 and not (starts[first] and at(first) == k) and at(first - 1) >= k do
+			first = first - 1
+		end
+		local last = row
+		while last < n and at(last + 1) >= k and not (starts[last + 1] and at(last + 1) == k) do
+			last = last + 1
+		end
+		ranges[#ranges + 1] = { first, last }
+	end
+	return ranges
 end
 
 function M.level()

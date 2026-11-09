@@ -9,9 +9,9 @@
 -- :AIStop                  cancel the requests running in this buffer
 -- :AIModel [name]          show or set the model for this session
 --
--- The region of interest is the selection; without one, the innermost
--- fold around the cursor (a function, a block, a section), or the
--- paragraph when there is no fold or it is too big. The model gets that
+-- The region of interest is the selection; without one, the enclosing
+-- function, class, or section (the largest structural fold around the
+-- cursor up to 150 lines), or the paragraph. The model gets that
 -- region, some text before and after it, and the instruction.
 --
 -- While the answer streams in it shows as grey text where it will go, with
@@ -91,40 +91,26 @@ local function paragraph(lines, row)
 	return a, b
 end
 
--- The innermost fold around the cursor in win, as first and last line:
--- close it for a moment to read its range, then open it again.
-local function fold_around(win)
-	-- nvim_win_call passes back one value, so the range comes as a table.
-	local range = vim.api.nvim_win_call(win, function()
-		local row = vim.fn.line('.')
-		if vim.fn.foldclosed(row) ~= -1 then
-			return { vim.fn.foldclosed(row), vim.fn.foldclosedend(row) }
-		end
-		if not vim.wo.foldenable or vim.fn.foldlevel(row) == 0 then
-			return nil
-		end
-		local view = vim.fn.winsaveview()
-		local ok = pcall(vim.cmd, 'normal! zc')
-		local first, last = vim.fn.foldclosed(row), vim.fn.foldclosedend(row)
-		if ok and first ~= -1 then
-			vim.cmd('normal! zo')
-		end
-		vim.fn.winrestview(view)
-		if first == -1 then
-			return nil
-		end
-		return { first, last }
-	end)
-	if range then
-		return range[1], range[2]
-	end
-end
-
 -- Rows (1-based, inclusive) of the region of interest with no selection.
+-- Folds bigger than this are not taken whole.
+local MAX_REGION_LINES = 150
+
+-- Without a selection: walk out from the innermost structural fold around
+-- the cursor (fold scanners: functions, classes, blocks, markdown
+-- sections; markers do not count) to the enclosing ones, and stop at the
+-- top level or before a fold over MAX_REGION_LINES or the budget. That
+-- usually lands on the whole function or class, not one switch inside it.
 local function auto_region(buf, win, lines, limit)
 	local row = vim.api.nvim_win_get_cursor(win)[1]
-	local first, last = fold_around(win)
-	if first and size(lines, first, last) <= limit * 0.6 then
+	local ok, ranges = pcall(require('config.folds').structure, buf, row)
+	local first, last
+	for _, r in ipairs(ok and ranges or {}) do
+		if r[2] - r[1] + 1 > MAX_REGION_LINES or size(lines, r[1], r[2]) > limit * 0.6 then
+			break
+		end
+		first, last = r[1], r[2]
+	end
+	if first then
 		return first, last
 	end
 	first, last = paragraph(lines, row)
@@ -295,7 +281,7 @@ end
 local function as_comment(buf, lines, indent)
 	local ft = vim.bo[buf].filetype
 	local cs = vim.bo[buf].commentstring
-	local width = (vim.bo[buf].textwidth > 0 and vim.bo[buf].textwidth or 80)
+	local width = (vim.bo[buf].textwidth > 0 and vim.bo[buf].textwidth or 120)
 		- vim.fn.strdisplaywidth(indent)
 		- vim.fn.strdisplaywidth((cs:gsub('%%s', '')))
 	lines = wrap(lines, math.max(30, width))

@@ -11,6 +11,13 @@
 -- always works; its file stays loaded in the background as a hidden
 -- buffer, and :b brings it back.
 --
+-- When a file's tab is reused, it moves to where a new tab would have
+-- opened, right after the tab you came from. :TabSort is still manual.
+--
+-- In netrw, t opens a file in a new tab and goes there (netrw's own); T and
+-- the middle mouse button open it in a tab and stay in netrw. Several in a
+-- row line up after each other.
+--
 -- `nvim a b c` opens a tab per file, as -p does, with no 10 or 50 limit.
 --
 -- :TabSort orders tab pages by the full path of each tab's current file.
@@ -99,6 +106,25 @@ local function shown(buf)
 	return #vim.fn.win_findbuf(buf) > 0
 end
 
+local function number(tab)
+	return api.nvim_tabpage_get_number(tab)
+end
+
+-- Put tab right after tab number `after` (0: first), and stay where you
+-- were. :tabmove N puts the current tab after the tab that is number N
+-- now, from either side.
+local function place(tab, after)
+	if number(tab) == after + 1 then
+		return
+	end
+	local cur = api.nvim_get_current_tabpage()
+	api.nvim_set_current_tabpage(tab)
+	vim.cmd('tabmove ' .. after)
+	if cur ~= tab and api.nvim_tabpage_is_valid(cur) then
+		api.nvim_set_current_tabpage(cur)
+	end
+end
+
 local function dedupe(win)
 	if not api.nvim_win_is_valid(win) then
 		return
@@ -118,14 +144,63 @@ local function dedupe(win)
 	local prev = api.nvim_win_call(win, function()
 		return vim.fn.bufnr('#')
 	end)
+	-- The file's tab moves to where a new tab would have opened: right
+	-- after the tab you came from, so it is not 100 tabs away.
+	local after
 	if prev ~= buf and is_file(prev) and api.nvim_buf_is_loaded(prev) and not shown(prev) then
 		api.nvim_win_set_buf(win, prev)
+		after = number(tab)
 	elseif #api.nvim_list_tabpages() > 1 then
+		-- Tabs left of this one keep their numbers when it closes.
+		after = number(tab) - 1
 		api.nvim_win_close(win, false)
 	end
 	if api.nvim_win_is_valid(other) then
+		local other_tab = api.nvim_win_get_tabpage(other)
+		if after then
+			place(other_tab, after)
+		end
+		api.nvim_set_current_tabpage(other_tab)
 		api.nvim_set_current_win(other)
 	end
+end
+
+local function find(path)
+	for _, b in ipairs(api.nvim_list_bufs()) do
+		if api.nvim_buf_get_name(b) == path then
+			return b
+		end
+	end
+end
+
+-- Open path in a tab without leaving this one. Several in a row line up
+-- after each other, as background tabs in a browser do. A file that has
+-- a tab already gets that tab moved here instead.
+function M.background(path)
+	path = vim.fn.fnamemodify(path, ':p')
+	local here = api.nvim_get_current_tabpage()
+	local ok, last = pcall(api.nvim_tabpage_get_var, here, 'background_last')
+	local after = number(here)
+	if ok and api.nvim_tabpage_is_valid(last) and number(last) > after then
+		after = number(last)
+	end
+
+	local buf = find(path)
+	local win = buf and home(buf, nil)
+	local tab
+	if win then
+		tab = api.nvim_win_get_tabpage(win)
+		if tab == here then
+			return
+		end
+		place(tab, after)
+	else
+		vim.cmd(after .. 'tabedit ' .. vim.fn.fnameescape(path))
+		tab = api.nvim_get_current_tabpage()
+		api.nvim_set_current_tabpage(here)
+	end
+	api.nvim_tabpage_set_var(here, 'background_last', tab)
+	vim.api.nvim_echo({ { ('"%s" in tab %d'):format(vim.fn.fnamemodify(path, ':~:.'), number(tab)) } }, false, {})
 end
 
 function M.setup()

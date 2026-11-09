@@ -19,7 +19,7 @@ Encrypted buffers (`.gpg`, `.pgp`, `.asc`) are never sent.
 | | No selection | With a selection |
 | --- | --- | --- |
 | `:AI [instruction]` | new lines just above the region (the function, class, or section around the cursor); outside any fold, at the cursor | replaces the selection |
-| `:AIAsk [question]` | answer goes in after the region | answer goes in on new lines after the selection |
+| `:AIAsk [question]` | answer goes in just above the region | answer goes in just above the selection |
 
 `@provider/model` as the first word uses another model once; Tab completes it, matching fuzzily after the slash (`@openrouter/dsflash`). Enter on a selected menu entry takes it and stays on the command line. `:AIStop` cancels the requests running in the buffer.
 
@@ -33,7 +33,7 @@ The chat panel's edits will apply at once (decided): undo, or git, is the way ba
 
 **Context:** the focus plus text before and after it (two thirds of what is left of the budget before, the rest after), up to `settings.context_chars`, and never more than half the model's context window when the provider reports it.
 
-**Output.** While the answer streams it shows as grey text at the top of the target, with a seconds counter. Complete, it goes in as one change (one undo); the target is tracked with extmarks, so editing elsewhere meanwhile is fine. Checks before it goes in: an answer that contains the request's tag is refused; leading and trailing lines that repeat the surrounding text are dropped; one fence around the whole answer is removed; a rewrite of a selection inside one line is trimmed of line breaks; whole lines inserted with the cursor in the indentation go above the cursor line, at its indent. `:AIAsk` answers start with the question restated in one short line, then a blank line, then the answer. They are wrapped to 120 columns (or `'textwidth'`) and go in as comments in the file's `'commentstring'`, at the indent of the line above; markdown, text, and files without a filetype get plain text after a blank line. (An answer that quotes a fold marker adds one; rare.)
+**Output.** While the answer streams it shows as grey text at the top of the target, with a seconds counter. Complete, it goes in as one change (one undo); the target is tracked with extmarks, so editing elsewhere meanwhile is fine. Checks before it goes in: an answer that contains the request's tag is refused; leading and trailing lines that repeat the surrounding text are dropped; one fence around the whole answer is removed; a rewrite of a selection inside one line is trimmed of line breaks; whole lines inserted with the cursor in the indentation go above the cursor line, at its indent. `:AIAsk` answers start with the question restated in one short line, then a blank line, then the answer. They are wrapped to 120 columns (or `'textwidth'`) and go in as comments in the file's `'commentstring'`, above the region at its first line's indent, so folding the region below leaves the answer showing; markdown, text, and files without a filetype get plain text followed by a blank line. (An answer that quotes a fold marker adds one; rare.)
 
 **Requests** give up after 20 s without a connection, 120 s without any data (providers send keep-alives while a model thinks), or 10 minutes in all. Errors show the provider's own message.
 

@@ -3,7 +3,7 @@
 -- :AI [instruction]        write at the cursor (inserted there)
 -- :'<,'>AI [instruction]   rewrite the selection (replaced)
 -- :AIAsk [question]        ask about the selection, or the block at the
---                          cursor; the answer goes in below it, as
+--                          cursor; the answer goes in above it, as
 --                          comments in code and plain text in markdown
 -- @provider/model as the first word of either uses that model once.
 -- :AIStop                  cancel the requests running in this buffer
@@ -271,7 +271,7 @@ end
 
 -- An answer as comments, in the file's own comment style and at the
 -- indent of the line it follows. Markdown, text, and files without a
--- filetype get it as plain text, set off by a blank line.
+-- filetype get it as plain text, followed by a blank line.
 -- Word-wrap prose lines to width.
 local function wrap(lines, width)
 	local out = {}
@@ -302,7 +302,7 @@ local function as_comment(buf, lines, indent)
 		- vim.fn.strdisplaywidth((cs:gsub('%%s', '')))
 	lines = wrap(lines, math.max(30, width))
 	if ft == '' or ft == 'markdown' or ft == 'text' or not cs:find('%s', 1, true) then
-		local out = vim.list_extend({ '' }, lines)
+		local out = vim.list_extend(vim.deepcopy(lines), { '' })
 		return out
 	end
 	local out = {}
@@ -485,8 +485,10 @@ function M.ask(opts, ask)
 
 			if target.mode == 'ask' then
 				local lines = vim.split(vim.trim(text), '\n', { plain = true })
-				local anchor = vim.api.nvim_buf_get_lines(buf, en[1], en[1] + 1, false)[1] or ''
-				vim.api.nvim_buf_set_lines(buf, en[1] + 1, en[1] + 1, false, as_comment(buf, lines, anchor:match('^%s*')))
+				-- Above the region, at its first line's indent, so a fold of
+				-- the region below the answer closes cleanly.
+				local anchor = vim.api.nvim_buf_get_lines(buf, s[1], s[1] + 1, false)[1] or ''
+				vim.api.nvim_buf_set_lines(buf, s[1], s[1], false, as_comment(buf, lines, anchor:match('^%s*')))
 				return
 			end
 

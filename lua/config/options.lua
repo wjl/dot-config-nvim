@@ -36,6 +36,8 @@ o.breakindent = true
 -- Ctrl-E / Ctrl-Y and the mouse wheel scroll a wrapped line by screen
 -- row instead of jumping over all of it.
 o.smoothscroll = true
+-- One line per wheel notch (Neovim's default is 3). Sideways stays 6.
+o.mousescroll = { 'ver:1', 'hor:6' }
 o.colorcolumn:append('+1')
 
 o.number = true

@@ -206,7 +206,7 @@ Turn on only the rows you say yes to. Candidates are in the audit: persistent un
 Decided:
 
 - Persistent undo: **no**. Git keeps history; the editor should not keep extra copies of file contents, and no rule can tell which files are sensitive.
-- `smoothscroll`: **on**, to try. The mouse wheel's 3 lines per notch is Neovim's default `mousescroll=ver:3,hor:6`, not something set here.
+- `smoothscroll`: **on**, to try. `mousescroll=ver:1,hor:6`: one line per wheel notch (Neovim's default is 3).
 - `<C-L>`: Neovim 0.12 already maps it to `:nohlsearch | diffupdate` and a redraw. Ours does that and then `zz`.
 - Spell: no toggle key; `:set spell` / `:set nospell` by hand. French, German, Swedish, and Spanish `.spl` files are vendored in `spell/` with their licenses (`spell/README.md`); English ships with Neovim. No `.sug` files: `z=` gave the same suggestions without them. `en,fr` together flags English hyphenated compounds, because French makes `-` a word character; `en` with `de`, `sv`, or `es` combines cleanly.
 - Cleanups: `after/ftplugin/cpp` and `after/ftplugin/dart` only restated Neovim's `// %s`; Neovim knows `*.c++`. `*.h++` and `*.vhdlpp` moved to `vim.filetype.add` in `options.lua`, and `ftdetect/` is gone.

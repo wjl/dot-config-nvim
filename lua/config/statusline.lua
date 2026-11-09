@@ -235,43 +235,116 @@ function M.render()
 	return text
 end
 
+-- Which tabs the tab line shows. `first` is the leftmost tab shown.
+-- Moving to another tab (or opening or closing one) brings the current tab
+-- into view with a neighbor on each side; the mouse wheel over the tab
+-- line scrolls it without changing tabs, until the next tab change.
+local view = { first = 1, follow = true }
+
+local function tab_items()
+	local items = {}
+	local current = vim.api.nvim_get_current_tabpage()
+	for i, tab in ipairs(vim.api.nvim_list_tabpages()) do
+		local win = vim.api.nvim_tabpage_get_win(tab)
+		local buf = vim.api.nvim_win_get_buf(win)
+		local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
+		if name == '' then
+			name = '[No Name]'
+		end
+		local flags = ''
+		if not vim.bo[buf].modifiable then
+			flags = ' [-]'
+		elseif vim.bo[buf].modified then
+			flags = ' [+]'
+		end
+		local text = ' ' .. i .. ' ' .. name .. flags .. ' '
+		items[i] = { nr = i, text = text, width = vim.fn.strdisplaywidth(text), selected = tab == current }
+		if tab == current then
+			items.current = i
+		end
+	end
+	return items
+end
+
+-- How many tabs are hidden at each end: "‹3 " at the left, " 5›" at the right.
+local function left_marker(n)
+	return n > 0 and ('‹' .. n .. ' ') or ''
+end
+local function right_marker(n)
+	return n > 0 and (' ' .. n .. '›') or ''
+end
+
+-- Columns the tabs first..last take, plus the markers for hidden tabs.
+local function span(items, first, last)
+	local w = vim.fn.strdisplaywidth(left_marker(first - 1)) + vim.fn.strdisplaywidth(right_marker(#items - last))
+	for i = first, last do
+		w = w + items[i].width
+	end
+	return w
+end
+
+local function choose_first(items, width)
+	local n = #items
+	local first = math.max(1, math.min(view.first, n))
+	if view.follow and items.current then
+		local cur = items.current
+		local lo, hi = math.max(1, cur - 1), math.min(n, cur + 1)
+		-- The current tab and both neighbors when they fit; otherwise the
+		-- current tab with whatever of the next one fits.
+		if span(items, lo, hi) > width then
+			lo, hi = cur, cur
+		end
+		if first > lo then
+			first = lo
+		end
+		while first < lo and span(items, first, hi) > width do
+			first = first + 1
+		end
+	end
+	-- No empty space at the right while tabs are hidden on the left.
+	while first > 1 and span(items, first - 1, n) <= width do
+		first = first - 1
+	end
+	return first
+end
+
 function M.tabline()
 	local ok, text = pcall(function()
-		local tabs = vim.api.nvim_list_tabpages()
-		local current = vim.api.nvim_get_current_tabpage()
+		local items = tab_items()
+		local n = #items
+		local width = vim.o.columns
+		local first = choose_first(items, width)
+		view.first = first
+
 		local chunks = {}
-		for i, tab in ipairs(tabs) do
-			local win = vim.api.nvim_tabpage_get_win(tab)
-			local buf = vim.api.nvim_win_get_buf(win)
-			local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
-			if name == '' then
-				name = '[No Name]'
-			end
-			local flags = ''
-			if not vim.bo[buf].modifiable then
-				flags = ' [-]'
-			elseif vim.bo[buf].modified then
-				flags = ' [+]'
-			end
-			local selected = tab == current
-			local nr = vim.api.nvim_tabpage_get_number(tab)
-			local next_selected = tabs[i + 1] == current
-			local last = i == #tabs
-			chunks[#chunks + 1] = (selected and '%#StlTabSel#' or '%#StlTab#')
-			chunks[#chunks + 1] = '%' .. nr .. 'T ' .. nr .. ' ' .. stl_escape(name) .. flags .. ' %T'
-			if selected and last then
-				chunks[#chunks + 1] = '%#StlTabSepSel#'
-			elseif selected then
-				chunks[#chunks + 1] = '%#StlTabSepSelNext#'
-			elseif next_selected then
-				chunks[#chunks + 1] = '%#StlTabSepNext#'
-			elseif last then
-				chunks[#chunks + 1] = '%#StlTabSep#'
-			else
-				chunks[#chunks + 1] = '%#StlTabSub#'
-			end
+		local used = 0
+		local left = left_marker(first - 1)
+		if left ~= '' then
+			chunks[#chunks + 1] = '%#StlTabSub#' .. left
+			used = used + vim.fn.strdisplaywidth(left)
 		end
-		chunks[#chunks + 1] = '%#StlMiddle#'
+		local last = first - 1
+		for i = first, n do
+			local item = items[i]
+			local right = right_marker(n - i)
+			local room = width - used - vim.fn.strdisplaywidth(right)
+			if item.width > room and i > first then
+				-- Cut the last one that does not fit; the marker says how many follow.
+				local cut = vim.fn.strcharpart(item.text, 0, math.max(0, width - used - vim.fn.strdisplaywidth(right_marker(n - i + 1))))
+				if cut ~= '' then
+					chunks[#chunks + 1] = (item.selected and '%#StlTabSel#' or '%#StlTab#') .. '%' .. item.nr .. 'T' .. stl_escape(cut) .. '%T'
+				end
+				break
+			end
+			chunks[#chunks + 1] = (item.selected and '%#StlTabSel#' or '%#StlTab#') .. '%' .. item.nr .. 'T' .. stl_escape(item.text) .. '%T'
+			chunks[#chunks + 1] = '%#StlTabSub#'
+			used = used + item.width
+			last = i
+		end
+		chunks[#chunks + 1] = '%#StlMiddle#%='
+		if n - last > 0 then
+			chunks[#chunks + 1] = '%#StlTabSub#' .. right_marker(n - last)
+		end
 		return table.concat(chunks)
 	end)
 	if not ok then
@@ -280,10 +353,34 @@ function M.tabline()
 	return text
 end
 
+-- Mouse wheel over the tab line: scroll it. Anywhere else: the usual.
+local function wheel(key, step)
+	return function()
+		if vim.fn.getmousepos().screenrow == 1 and vim.o.showtabline > 0 and (vim.o.showtabline == 2 or #vim.api.nvim_list_tabpages() > 1) then
+			local n = #vim.api.nvim_list_tabpages()
+			view.first = math.max(1, math.min(n, view.first + step))
+			view.follow = false
+			vim.cmd('redrawtabline')
+			return ''
+		end
+		return key
+	end
+end
+
 function M.setup()
 	M.highlights()
 	vim.o.statusline = '%{%v:lua.require("config.statusline").render()%}'
 	vim.o.tabline = '%{%v:lua.require("config.statusline").tabline()%}'
+	vim.api.nvim_create_autocmd({ 'TabEnter', 'TabNew', 'TabClosed', 'VimResized' }, {
+		group = vim.api.nvim_create_augroup('config_tabline', { clear = true }),
+		callback = function()
+			view.follow = true
+		end,
+	})
+	for _, mode in ipairs({ 'n', 'i', 'v', 't' }) do
+		vim.keymap.set(mode, '<ScrollWheelUp>', wheel('<ScrollWheelUp>', -1), { expr = true })
+		vim.keymap.set(mode, '<ScrollWheelDown>', wheel('<ScrollWheelDown>', 1), { expr = true })
+	end
 	vim.api.nvim_create_autocmd({ 'FocusGained', 'DirChanged', 'BufWritePost' }, {
 		group = vim.api.nvim_create_augroup('config_statusline', { clear = true }),
 		callback = function()

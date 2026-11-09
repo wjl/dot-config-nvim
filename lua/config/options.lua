@@ -33,6 +33,9 @@ vim.cmd('set whichwrap+=<,>,[,]')
 o.showbreak = '↪ '
 o.linebreak = true
 o.breakindent = true
+-- A wrapped list item lines up under the item's text, not under the "-"
+-- or "1." ('formatlistpat' finds the marker).
+o.breakindentopt = 'list:-1'
 -- Ctrl-E / Ctrl-Y and the mouse wheel scroll a wrapped line by screen
 -- row instead of jumping over all of it.
 o.smoothscroll = true

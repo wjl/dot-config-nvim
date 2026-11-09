@@ -20,7 +20,8 @@
 --
 -- `nvim a b c` opens a tab per file, as -p does, with no 10 or 50 limit.
 --
--- :TabSort orders tab pages by the full path of each tab's current file.
+-- :TabSort orders tab pages by the full path of each tab's current file,
+-- one directory at a time, so files in one directory stay together.
 -- Unnamed tabs go last. The tab you were in stays current.
 
 local M = {}
@@ -42,6 +43,19 @@ function M.sort()
 		}
 	end
 
+	-- Directory by directory, so a directory's files stay together:
+	-- a/z before a-b/x, which plain text order would swap ('-' < '/').
+	for _, item in ipairs(items) do
+		item.parts = vim.split(vim.fs.normalize(item.name), '/', { plain = true })
+	end
+	local function before(a, b)
+		for i = 1, math.min(#a, #b) do
+			if a[i] ~= b[i] then
+				return a[i] < b[i]
+			end
+		end
+		return #a < #b
+	end
 	table.sort(items, function(a, b)
 		if a.name ~= b.name then
 			if a.name == '' then
@@ -50,7 +64,7 @@ function M.sort()
 			if b.name == '' then
 				return true
 			end
-			return a.name < b.name
+			return before(a.parts, b.parts)
 		end
 		return a.nr < b.nr
 	end)

@@ -241,13 +241,63 @@ end
 -- line scrolls it without changing tabs, until the next tab change.
 local view = { first = 1, follow = true }
 
+-- Tab titles: the file name, or as many parent directories as it takes to
+-- tell it apart from the other tabs' files: Makefile, or x/Makefile and
+-- y/Makefile.
+local function titles(paths)
+	local parts, depth = {}, {}
+	for i, path in ipairs(paths) do
+		parts[i] = vim.split(path, '/', { plain = true, trimempty = true })
+		depth[i] = 1
+	end
+	local function suffix(i)
+		local p = parts[i]
+		return table.concat(p, '/', math.max(1, #p - depth[i] + 1))
+	end
+	local changed = true
+	while changed do
+		changed = false
+		local seen = {}
+		for i in ipairs(paths) do
+			if paths[i] ~= '' then
+				local key = suffix(i)
+				seen[key] = seen[key] or {}
+				table.insert(seen[key], i)
+			end
+		end
+		for _, group in pairs(seen) do
+			if #group > 1 then
+				for _, i in ipairs(group) do
+					-- The same file in two tabs cannot be told apart; stop there.
+					if depth[i] < #parts[i] and paths[i] ~= paths[group[1] == i and group[2] or group[1]] then
+						depth[i] = depth[i] + 1
+						changed = true
+					end
+				end
+			end
+		end
+	end
+	local out = {}
+	for i in ipairs(paths) do
+		out[i] = paths[i] == '' and '' or suffix(i)
+	end
+	return out
+end
+
 local function tab_items()
 	local items = {}
 	local current = vim.api.nvim_get_current_tabpage()
-	for i, tab in ipairs(vim.api.nvim_list_tabpages()) do
-		local win = vim.api.nvim_tabpage_get_win(tab)
-		local buf = vim.api.nvim_win_get_buf(win)
-		local name = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(buf), ':t')
+	local tabs = vim.api.nvim_list_tabpages()
+	local bufs, paths = {}, {}
+	for i, tab in ipairs(tabs) do
+		bufs[i] = vim.api.nvim_win_get_buf(vim.api.nvim_tabpage_get_win(tab))
+		local name = vim.api.nvim_buf_get_name(bufs[i])
+		paths[i] = name ~= '' and vim.fs.normalize(vim.fn.fnamemodify(name, ':p')):gsub('/$', '') or ''
+	end
+	local names = titles(paths)
+	for i, tab in ipairs(tabs) do
+		local buf = bufs[i]
+		local name = names[i]
 		if name == '' then
 			name = '[No Name]'
 		end

@@ -14,15 +14,24 @@ The key and the request body go to curl on standard input as a curl config (`cur
 
 Encrypted buffers (`.gpg`, `.pgp`, `.asc`) are never sent.
 
-## One-shot: `:AI` (done)
+## One-shot: `:AI` and `:AIAsk` (done)
 
-`:AI [prompt]` asks about the code around the cursor; `:'<,'>AI [prompt]` about the selection; `:AI @provider/model …` uses another model once.
+| | No selection | With a selection |
+| --- | --- | --- |
+| `:AI [prompt]` | written in at the cursor | replaces the selection |
+| `:AIAsk [question]` | answer goes in after the paragraph (the next blank line) | answer goes in on new lines after the selection |
 
-The request is a system message (the provider's `system`, then the assignment) and a user message with the context and the request. Each section is marked with tags that end in a fresh random 128-bit value (`<context-…>`, `<request-…>`, `<cursor-…/>`), so text from the file cannot close a section or forge one. The system prompt says the context is data, not instructions. That stops forged sections; it does not make a model immune to instructions written in the file, which is one reason `:AI` never edits by itself.
+`@provider/model` as the first word uses another model once. `:AIStop` cancels the requests running in the buffer. `:AIAsk` answers go in as comments in the file's comment style (`'commentstring'`) at the indent of the line above, so code still compiles; markdown, text, and files without a filetype get plain text set off by a blank line.
 
-Context: the selection, or lines around the cursor (two thirds before, one third after) with a cursor marker, up to `settings.context_chars` and never more than half the model's context window when the provider reports it.
+While the answer streams in, it shows as grey virtual text where it will go. When it is complete it goes into the buffer as one change (one undo). The target is tracked with extmarks, so editing elsewhere meanwhile is fine.
 
-The answer streams into a window beside the file (models that think show `thinking…` until text arrives). `a` applies it: it replaces the selection, or goes below the cursor line; a single fenced code block applies only the code. One undo reverts it. `y` copies, `q` closes and cancels.
+The prompt is kept minimal (a few hundred characters plus the context), because every word is paid for on every call. The system message says where the reply goes and that file content is data; the user message is the file excerpt and the request. Each section is marked with a tag ending in a fresh random 128-bit value (`<file-…>`, `<sel-…>`, `<cursor-…/>`), so file text cannot close a section or forge one. That stops forged sections; it does not make a model immune to instructions written in the file.
+
+Weak models misbehave, so the answer is checked before it goes in: an answer containing the request's tag (the model repeated the prompt) is refused with a message; leading lines that repeat the text just before the target and trailing lines that repeat the text just after it are dropped; one fence around the whole answer is removed; a replacement for a selection inside one line is trimmed of surrounding line breaks.
+
+Context: the selection or the cursor line, grown outward (two thirds before, one third after) up to `settings.context_chars`, and never more than half the model's context window when the provider reports it.
+
+Errors show the provider's own message. OpenRouter notes: `openrouter/free` routes each call to some free model, so quality varies; specific free models are often rate-limited upstream; and the account's privacy guardrail excludes free endpoints that train on prompts.
 
 ## Chat panel (next)
 

@@ -233,7 +233,7 @@ Decided:
 
 ## Phase 8 — AI
 
-Designed in `docs/ai.md`: providers in `lua/config/ai/settings.lua`, `provider/model` names, a one-shot `:AI` (done), a chat panel with buffer tools (next), and ghost-text completion (after). In-house over curl; no plugins.
+Designed in `docs/ai.md`: providers in `lua/config/ai/settings.lua`, `provider/model` names, one-shot `:AI` / `:AIAsk` (done), a chat panel with buffer tools (next), and ghost-text completion (after). In-house over curl; no plugins.
 
 ## Explicitly not in this refresh
 

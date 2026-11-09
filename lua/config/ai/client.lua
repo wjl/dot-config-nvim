@@ -148,6 +148,11 @@ function M.chat(spec, messages, cb)
 			local ok, decoded = pcall(vim.json.decode, text)
 			if ok and type(decoded) == 'table' and type(decoded.error) == 'table' then
 				msg = decoded.error.message or text
+				-- OpenRouter puts the upstream provider's own message here.
+				local meta = decoded.error.metadata
+				if type(meta) == 'table' and meta.raw then
+					msg = msg .. ': ' .. tostring(meta.raw):sub(1, 300)
+				end
 			else
 				msg = text
 			end

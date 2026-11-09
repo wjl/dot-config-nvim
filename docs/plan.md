@@ -209,6 +209,10 @@ Decided:
 - `smoothscroll`: **on**, to try. `mousescroll=ver:1,hor:6`: one line per wheel notch (Neovim's default is 3).
 - `<C-L>`: Neovim 0.12 already maps it to `:nohlsearch | diffupdate` and a redraw. Ours does that and then `zz`.
 - Spell: no toggle key; `:set spell` / `:set nospell` by hand. French, German, Swedish, and Spanish `.spl` files are vendored in `spell/` with their licenses (`spell/README.md`); English ships with Neovim. No `.sug` files: `z=` gave the same suggestions without them. French (Grammalecte 7.7 "toutes variantes") and Swedish (LibreOffice 2.42) are built by `nvim -l spell/build.lua` from pinned sources; they know current words (`selfie`, `visioconférence`, `hen`, `swisha`) that Vim's 2003-era files did not. Any pair combines cleanly, `en,fr` included.
+- `selection=exclusive` with `virtualedit=onemore`: **kept**. Visual mode compensates, so `vey` and `vf)` include the last character.
+- Arrow keys: Left/Right wrap across lines (`whichwrap`), **kept**. Up/Down now move by screen row on wrapped lines (`gk`/`gj`) and keep the remembered column; with a count they move by file line; in insert mode the completion menu keeps them while open.
+- `tildeop`: **kept**.
+- One tab per file (`tabs.lua`): opening a file that has a tab goes to it (`:tabe`, `:e`, netrw, `:b`, `gf`); a tab opened for the duplicate closes, a tab switched to it gets its previous file back (or closes if that was netrw). Splits and special buffers are exempt. Closing a tab leaves the file as a hidden buffer. `nvim a b c` opens a tab each (not with `-o`, `-O`, `-p`, `-d`), and `tabpagemax=10000`. Known gap: after `:only` in a tab with splits, the remaining window may duplicate another tab's file; that is left alone.
 - Cleanups: `after/ftplugin/cpp` and `after/ftplugin/dart` only restated Neovim's `// %s`; Neovim knows `*.c++`. `*.h++` and `*.vhdlpp` moved to `vim.filetype.add` in `options.lua`, and `ftdetect/` is gone.
 
 ## Phase 8 — AI

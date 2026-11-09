@@ -1,3 +1,18 @@
+-- One tab per file, like most editors.
+--
+-- Opening a file that already has a tab goes to that tab instead: :tabe,
+-- :e, netrw, :b, gf, and so on. A tab opened just for the duplicate closes;
+-- a tab that was switched to it (:e, or "-" then Enter in netrw) goes
+-- back to the file it had, or closes when that was not a file (netrw).
+--
+-- Only a tab's own file counts: a window that shares its tab with others
+-- (:split, :vsplit, :diffsplit) can show anything. Help, quickfix,
+-- terminals, and other special buffers are never touched. Closing a tab
+-- always works; its file stays loaded in the background as a hidden
+-- buffer, and :b brings it back.
+--
+-- `nvim a b c` opens a tab per file, as -p does, with no 10 or 50 limit.
+--
 -- :TabSort orders tab pages by the full path of each tab's current file.
 -- Unnamed tabs go last. The tab you were in stays current.
 
@@ -47,9 +62,101 @@ function M.sort()
 	end
 end
 
+local api = vim.api
+
+local function is_file(buf)
+	return buf > 0
+		and api.nvim_buf_is_valid(buf)
+		and vim.bo[buf].buftype == ''
+		and api.nvim_buf_get_name(buf) ~= ''
+		and vim.bo[buf].filetype ~= 'netrw'
+end
+
+-- Ordinary windows of a tab; floating windows do not count.
+local function windows(tab)
+	local wins = {}
+	for _, w in ipairs(api.nvim_tabpage_list_wins(tab)) do
+		if api.nvim_win_get_config(w).relative == '' then
+			wins[#wins + 1] = w
+		end
+	end
+	return wins
+end
+
+-- A window in a tab other than skip that shows buf on its own.
+local function home(buf, skip)
+	for _, tab in ipairs(api.nvim_list_tabpages()) do
+		if tab ~= skip then
+			local wins = windows(tab)
+			if #wins == 1 and api.nvim_win_get_buf(wins[1]) == buf then
+				return wins[1]
+			end
+		end
+	end
+end
+
+local function shown(buf)
+	return #vim.fn.win_findbuf(buf) > 0
+end
+
+local function dedupe(win)
+	if not api.nvim_win_is_valid(win) then
+		return
+	end
+	local buf = api.nvim_win_get_buf(win)
+	local tab = api.nvim_win_get_tabpage(win)
+	if not is_file(buf) or #windows(tab) ~= 1 or vim.wo[win].diff then
+		return
+	end
+	local other = home(buf, tab)
+	if not other then
+		return
+	end
+
+	-- Put back what this tab showed before, if that was a file that is now
+	-- in no window. Otherwise this tab was only ever for the duplicate.
+	local prev = api.nvim_win_call(win, function()
+		return vim.fn.bufnr('#')
+	end)
+	if prev ~= buf and is_file(prev) and api.nvim_buf_is_loaded(prev) and not shown(prev) then
+		api.nvim_win_set_buf(win, prev)
+	elseif #api.nvim_list_tabpages() > 1 then
+		api.nvim_win_close(win, false)
+	end
+	if api.nvim_win_is_valid(other) then
+		api.nvim_set_current_win(other)
+	end
+end
+
 function M.setup()
 	vim.api.nvim_create_user_command('TabSort', M.sort, {
 		desc = 'Sort tabs by the current file path',
+	})
+
+	-- -p and :tab all stop at 'tabpagemax' (default 50).
+	vim.o.tabpagemax = 10000
+
+	local group = api.nvim_create_augroup('config.tabs', { clear = true })
+	-- After the command that opened the file has finished.
+	api.nvim_create_autocmd('BufWinEnter', {
+		group = group,
+		callback = function()
+			local win = api.nvim_get_current_win()
+			vim.schedule(function()
+				dedupe(win)
+			end)
+		end,
+	})
+
+	-- nvim a b c: a tab each, unless -o, -O, -p, or -d already arranged them.
+	api.nvim_create_autocmd('VimEnter', {
+		group = group,
+		callback = function()
+			if vim.fn.argc() > 1 and #api.nvim_list_tabpages() == 1 and #windows(0) == 1 and not vim.wo.diff then
+				vim.cmd('silent tab all')
+				vim.cmd('tabfirst')
+			end
+		end,
 	})
 end
 

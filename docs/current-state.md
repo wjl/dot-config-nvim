@@ -14,11 +14,11 @@ What you run now:
 | `after/ftplugin/markdown.lua` | Markdown uses the classic syntax, so code fences are colored in their language |
 | `after/syntax/markdown.vim` | `{{{` / `}}}` are highlighted, and a `_` inside a word is not an error. `*.txt` is markdown |
 | `lua/config/autocmds.lua` | The hard-tab lock, and BufEnter `lcd` |
-| `lua/config/mappings.lua` | `Q`, Space, Enter, wildmenu arrows, `gS` |
+| `lua/config/mappings.lua` | `Q`, Space, Enter, `<C-L>`, Up/Down by screen row, wildmenu arrows, `gS` |
 | `lua/config/files.lua` | `-` |
 | `lua/config/cursorword.lua` | Underline the word under the cursor |
 | `lua/config/statusline.lua` | Status line and tab line |
-| `lua/config/tabs.lua` | `:TabSort` |
+| `lua/config/tabs.lua` | One tab per file, a tab per file argument, `:TabSort` |
 | `lua/config/gutter.lua` | Signs for changes against the git index; `]c` / `[c` |
 | `lua/config/gpg.lua` | Edit `*.gpg` / `*.pgp` / `*.asc`; `:GpgInfo`, `:GpgEncryption`. Replaces vim-gnupg |
 

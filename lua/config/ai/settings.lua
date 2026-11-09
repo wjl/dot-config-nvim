@@ -32,6 +32,7 @@ return {
 		-- Cheap and decent for now. openrouter/openrouter/free is free but routes
 		-- each call to a different model, so quality jumps around.
 		oneshot = 'openrouter/deepseek/deepseek-v4.1-flash',
+		chat = 'openrouter/deepseek/deepseek-v4.1-flash',
 	},
 
 	-- At most this much of the file is sent as context (about 4 characters

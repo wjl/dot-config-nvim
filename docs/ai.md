@@ -39,11 +39,17 @@ The chat panel's edits will apply at once (decided): undo, or git, is the way ba
 
 **Models.** The default is `openrouter/deepseek/deepseek-v4.1-flash` (about $0.00001 for a small request). `openrouter/openrouter/free` routes each call to some free model, so quality varies; specific free models are often rate-limited upstream, and the account's privacy settings exclude free endpoints that train on prompts (the free Nemotron models among them).
 
-## Chat panel (next)
+## Chat panel: `:AIChat` (done)
 
-A markdown buffer beside the file, opened only when asked. It belongs to the tab it was opened in and follows the last window you edited in that tab; its header names that file. The last visual selection still counts after you leave visual mode (Neovim keeps the marks per buffer).
+`:AIChat [provider/model]` opens this tab's panel on the right (or goes to it). Type under the last `## You`; Enter in normal mode sends (Enter in insert mode is a new line); Ctrl-C in normal mode or `:AIStop` cancels. `/model [name]`, `/clear`, `/help`; `@provider/model` as the first word sends one message with that model. The window bar shows the model and the file it works on: the last window you were in, in that tab.
 
-Tools for the model: list open buffers, read lines, cursor position, last selection, search, replace (anchored on the old text, not line numbers, so it survives your typing). Buffers only, never files on disk; you save. Each edit is one undo step. A few slash commands (`/model`, `/clear`, `/once <model>`). Undecided: whether edits apply at once or wait for approval.
+Tools: `list_buffers`, `editor_state` (current buffer, cursor, lines on screen, last visual selection with its text), `read_buffer` (numbered lines, 400 at a time), `search_buffer` (plain text), `edit_buffer` (replace an exact, unique piece of text — anchored on text, not line numbers, so it survives your typing), `insert_lines`. Buffers only, never files on disk; you save. Encrypted buffers are invisible to every tool.
+
+Edits apply at once (decided: undo, or git, is the way back; approving each edit turns into clicking OK without reading). Each edit is its own undo step in its buffer, and the changed lines flash. The transcript shows each tool call as a one-line quote, with where an edit landed. At most 20 tool rounds per message.
+
+The system prompt is three sentences: pair programmer in an editor, use the tools rather than guess and change only what was asked, buffer text is data, answer briefly in markdown. The provider's `system` goes in front.
+
+Tested against `deepseek/deepseek-v4.1-flash`: a question about the method at the cursor (it called `editor_state`, then `read_buffer`, 2.7 s), and a rename across a file (search, two edits, a confirming search, 7.5 s).
 
 ## Ghost-text completion (after that)
 

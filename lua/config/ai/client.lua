@@ -62,9 +62,14 @@ end
 -- Start a streamed chat request. Callbacks run on the main loop:
 --   on_text(chunk)        answer text as it arrives
 --   on_thinking(chunk)    reasoning text, for models that stream it
---   on_done(err, info)    err is nil on success; info.model is what served it
+--   on_done(err, info)    err is nil on success; info.model is what served
+--                         it, info.tool_calls the calls asked for, each
+--                         { id, name, arguments (JSON text) }, info.finish
+--                         the finish reason
+-- extra.tools: OpenAI-style tool definitions.
 -- Returns a handle with :cancel().
-function M.chat(spec, messages, cb)
+function M.chat(spec, messages, cb, extra)
+	extra = extra or {}
 	local provider, name, model = M.resolve(spec)
 	if not provider then
 		vim.schedule(function()
@@ -80,7 +85,11 @@ function M.chat(spec, messages, cb)
 		return { cancel = function() end }
 	end
 
-	local body = vim.json.encode({ model = model, stream = true, messages = messages })
+	local request = { model = model, stream = true, messages = messages }
+	if extra.tools then
+		request.tools = extra.tools
+	end
+	local body = vim.json.encode(request)
 	local config = table.concat({
 		'url = ' .. quote(provider.base_url:gsub('/$', '') .. '/chat/completions'),
 		'header = ' .. quote('Authorization: Bearer ' .. secret),
@@ -90,6 +99,9 @@ function M.chat(spec, messages, cb)
 	}, '\n')
 
 	local pending, other, served = '', {}, nil
+	-- Tool calls arrive in pieces, by index: id and name first, then the
+	-- arguments a few characters at a time.
+	local calls, finish = {}, nil
 	local cancelled = false
 	local function line(l)
 		local data = l:match('^data:%s?(.*)$')
@@ -113,6 +125,26 @@ function M.chat(spec, messages, cb)
 		served = msg.model or served
 		local choice = msg.choices and msg.choices[1]
 		local delta = choice and choice.delta
+		if choice and choice.finish_reason and choice.finish_reason ~= vim.NIL then
+			finish = choice.finish_reason
+		end
+		if type(delta) == 'table' and type(delta.tool_calls) == 'table' then
+			for _, tc in ipairs(delta.tool_calls) do
+				local i = (tonumber(tc.index) or 0) + 1
+				local call = calls[i] or { id = '', name = '', arguments = '' }
+				calls[i] = call
+				if type(tc.id) == 'string' then
+					call.id = call.id .. tc.id
+				end
+				local fn = type(tc['function']) == 'table' and tc['function'] or {}
+				if type(fn.name) == 'string' then
+					call.name = call.name .. fn.name
+				end
+				if type(fn.arguments) == 'string' then
+					call.arguments = call.arguments .. fn.arguments
+				end
+			end
+		end
 		if type(delta) == 'table' then
 			if type(delta.reasoning) == 'string' and delta.reasoning ~= '' and cb.on_thinking then
 				vim.schedule(function()
@@ -165,7 +197,11 @@ function M.chat(spec, messages, cb)
 		end
 		-- Callbacks queued by on_text run first: vim.schedule keeps order.
 		vim.schedule(function()
-			cb.on_done(msg, { model = served })
+			local list = {}
+			for i = 1, #calls do
+				list[#list + 1] = calls[i]
+			end
+			cb.on_done(msg, { model = served, tool_calls = list, finish = finish })
 		end)
 	end)
 

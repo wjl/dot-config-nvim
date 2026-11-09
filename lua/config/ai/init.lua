@@ -8,6 +8,7 @@
 -- @provider/model as the first word of either uses that model once.
 -- :AIStop                  cancel the requests running in this buffer
 -- :AIModel [name]          show or set the model for this session
+-- :AIChat [model]          the chat panel (lua/config/ai/chat.lua)
 --
 -- The region of interest is the selection; without one, the enclosing
 -- function, class, or section (the largest structural fold around the
@@ -570,6 +571,8 @@ local function complete_at(arglead, line)
 	return {}
 end
 
+M.complete_model = complete_model
+
 function M.setup()
 	vim.api.nvim_create_user_command('AI', function(opts)
 		M.ask(opts, false)
@@ -588,8 +591,12 @@ function M.setup()
 		complete = complete_at,
 	})
 	vim.api.nvim_create_user_command('AIStop', function()
+		local chat = require('config.ai.chat').current()
+		if chat and vim.api.nvim_get_current_buf() == chat.buf then
+			return require('config.ai.chat').stop(chat)
+		end
 		M.stop()
-	end, { desc = 'Cancel AI requests in this buffer' })
+	end, { desc = 'Cancel AI requests in this buffer (or the chat reply)' })
 	vim.api.nvim_create_user_command('AIModel', function(opts)
 		if opts.args == '' then
 			return vim.notify('AI model: ' .. session.oneshot)
@@ -605,6 +612,7 @@ function M.setup()
 		desc = 'Show or set the AI model for this session',
 		complete = complete_model,
 	})
+	require('config.ai.chat').setup()
 	vim.api.nvim_create_autocmd('BufWipeout', {
 		group = vim.api.nvim_create_augroup('config_ai', { clear = true }),
 		callback = function(ev)

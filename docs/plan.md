@@ -233,7 +233,7 @@ Decided:
 
 ## Phase 8 — AI
 
-Not designed yet. When you describe it, the notes go in `docs/ai.md` before any code. Likely pieces, so we are not surprised later: a terminal or a buffer running a CLI you already use, versus inline completion, versus an LSP. Those are different projects. Supply-chain rules from phase 2 still apply. No plugin that phones home for its own install.
+Designed in `docs/ai.md`: providers in `lua/config/ai/settings.lua`, `provider/model` names, a one-shot `:AI` (done), a chat panel with buffer tools (next), and ghost-text completion (after). In-house over curl; no plugins.
 
 ## Explicitly not in this refresh
 

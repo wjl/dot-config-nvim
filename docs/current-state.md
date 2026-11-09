@@ -19,6 +19,7 @@ What you run now:
 | `lua/config/cursorword.lua` | Underline the word under the cursor |
 | `lua/config/statusline.lua` | Status line and tab line |
 | `lua/config/tabs.lua` | One tab per file, a tab per file argument, `:TabSort` |
+| `lua/config/ai/` | `:AI` one-shot and `:AIModel`; see `docs/ai.md` |
 | `lua/config/gutter.lua` | Signs for changes against the git index; `]c` / `[c` |
 | `lua/config/gpg.lua` | Edit `*.gpg` / `*.pgp` / `*.asc`; `:GpgInfo`, `:GpgEncryption`. Replaces vim-gnupg |
 

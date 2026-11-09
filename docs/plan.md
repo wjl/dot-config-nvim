@@ -201,6 +201,8 @@ Checked headless in throwaway repositories: each mark, pending marks, the pause 
 
 ## Phase 7 — Defaults we choose
 
+Done: every row below was decided with you.
+
 Turn on only the rows you say yes to. Candidates are in the audit: persistent undo, `smoothscroll`, a `<C-l>` that clears search highlighting, a spell toggle. Nothing else from that table changes by default.
 
 Decided:
@@ -225,6 +227,8 @@ Decided:
 - `autoread` plus `:checktime` on focus, buffer and window switches, and `CursorHold`, so a file changed outside Neovim reloads when it has no unsaved edits (with unsaved edits Neovim asks).
 - `splitkeep=screen`: opening or closing a split leaves the text in place.
 - `mousemodel=popup_setpos`: right click moves the cursor to the pointer, then opens the menu. The menu adds "Open in new tab" and "Open in background tab" for the file named under the pointer (or the netrw entry), enabled only when that file exists, and drops "How-to disable mouse".
+- Markdown indented code blocks (a line indented a tab or four spaces after a blank line): **kept**, as CommonMark does. Revisit if a tab-indented list continuation shows up colored as code; the fix is to drop that rule in the highlighter and in `foldscan/markdown.lua` and recognize only fences.
+- Lua inside Vimscript (`lua << EOF`): **not folded inside, on purpose**. The config is all Lua now; for an old file, `:set syntax=lua` is enough.
 - Cleanups: `after/ftplugin/cpp` and `after/ftplugin/dart` only restated Neovim's `// %s`; Neovim knows `*.c++`. `*.h++` and `*.vhdlpp` moved to `vim.filetype.add` in `options.lua`, and `ftdetect/` is gone.
 
 ## Phase 8 — AI

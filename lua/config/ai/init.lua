@@ -190,7 +190,8 @@ local function build(buf, target, prompt, spec)
 			tag
 		)
 	elseif target.mode == 'ask' then
-		job = ('The user has a question about <focus-%s>. Output only your answer, short, in plain text.'):format(tag)
+		job = ('The user has a question about <focus-%s>. Output, in plain text: the question restated in one short line, '
+			.. 'a blank line, then your answer, short.'):format(tag)
 	elseif target.linewise then
 		job = ('The user wants <focus-%s> rewritten. Output only the new version of it, complete.'):format(tag)
 	else
@@ -409,7 +410,8 @@ function M.ask(opts, ask)
 		if not vim.api.nvim_buf_is_valid(buf) then
 			return
 		end
-		local pos = vim.api.nvim_buf_get_extmark_by_id(buf, ns, emark, {})
+		-- At the top of the target, for every mode.
+		local pos = vim.api.nvim_buf_get_extmark_by_id(buf, ns, smark, {})
 		if not pos[1] then
 			return
 		end
@@ -428,6 +430,7 @@ function M.ask(opts, ask)
 			virt_text = { { status, 'Comment' } },
 			virt_text_pos = 'eol',
 			virt_lines = text ~= '' and virt or nil,
+			virt_lines_above = true,
 		})
 	end
 

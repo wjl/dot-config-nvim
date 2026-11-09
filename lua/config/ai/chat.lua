@@ -1,7 +1,7 @@
 -- AI chat panel: a conversation beside your files, with tools to read and
 -- edit the open buffers.
 --
--- :AIChat [provider/model]   open (or go to) this tab's chat panel
+-- :AIChat [provider/model]   open (or go to) this tab's chat panel, on the left
 --
 -- In the panel, type under the last "## You" heading. Enter in normal mode
 -- sends it (Enter in insert mode is a new line). Ctrl-C in normal mode, or
@@ -528,7 +528,7 @@ function M.open(opts)
 			chat.model = model
 		end
 		if not (chat.win and api.nvim_win_is_valid(chat.win)) then
-			vim.cmd('botright vsplit')
+			vim.cmd('topleft vsplit')
 			chat.win = api.nvim_get_current_win()
 			api.nvim_win_set_buf(chat.win, chat.buf)
 		end
@@ -545,7 +545,7 @@ function M.open(opts)
 	vim.bo[buf].bufhidden = 'hide'
 	pcall(api.nvim_buf_set_name, buf, ('AI chat %d'):format(api.nvim_tabpage_get_number(tab)))
 	api.nvim_buf_set_lines(buf, 0, -1, false, { '## You', '' })
-	vim.cmd('botright vsplit')
+	vim.cmd('topleft vsplit')
 	local win = api.nvim_get_current_win()
 	api.nvim_win_set_buf(win, buf)
 	api.nvim_win_set_width(win, math.max(50, math.floor(vim.o.columns * 0.4)))

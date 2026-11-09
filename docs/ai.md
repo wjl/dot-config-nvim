@@ -41,7 +41,7 @@ The chat panel's edits will apply at once (decided): undo, or git, is the way ba
 
 ## Chat panel: `:AIChat` (done)
 
-`:AIChat [provider/model]` opens this tab's panel on the right (or goes to it). Type under the last `## You`; Enter in normal mode sends (Enter in insert mode is a new line); Ctrl-C in normal mode or `:AIStop` cancels. `/model [name]`, `/clear`, `/help`; `@provider/model` as the first word sends one message with that model. The window bar shows the model and the file it works on: the last window you were in, in that tab.
+`:AIChat [provider/model]` opens this tab's panel on the left (or goes to it). Type under the last `## You`; Enter in normal mode sends (Enter in insert mode is a new line); Ctrl-C in normal mode or `:AIStop` cancels. `/model [name]`, `/clear`, `/help`; `@provider/model` as the first word sends one message with that model. The window bar shows the model and the file it works on: the last window you were in, in that tab.
 
 Tools: `list_buffers`, `editor_state` (current buffer, cursor, lines on screen, last visual selection with its text), `read_buffer` (numbered lines, 400 at a time), `search_buffer` (plain text), `edit_buffer` (replace an exact, unique piece of text — anchored on text, not line numbers, so it survives your typing), `insert_lines`. Buffers only, never files on disk; you save. Encrypted buffers are invisible to every tool.
 

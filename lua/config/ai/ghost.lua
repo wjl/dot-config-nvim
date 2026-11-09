@@ -8,9 +8,10 @@
 -- :AIGhost status            what is in effect here
 --
 -- In insert mode:
---   Right       take the whole suggestion
+--   Right, Down take the whole suggestion
 --   Alt-Right   take one word of it
---   Alt-\       ask now, without waiting for the pause
+--   Ctrl-Space  ask now, without waiting for the pause; works with
+--               :AIGhost off too, for a one-off suggestion
 -- Typing the same characters as the suggestion shrinks it; anything else,
 -- or leaving insert mode, drops it. A request in flight is cancelled the
 -- moment you type. The built-in completion menu stays shut while a
@@ -194,7 +195,7 @@ local function ask(buf)
 	local here = ('<here-%s/>'):format(tag)
 
 	-- Text before and after the cursor, within the settings.
-	local before_chars, after_chars = cfg.before_chars or 4000, cfg.after_chars or 1500
+	local before_chars, after_chars = cfg.before_chars or 16000, cfg.after_chars or 8000
 	local before = { cur:sub(1, col) }
 	local used = #before[1]
 	local r = row
@@ -322,6 +323,11 @@ local function insert(buf, text)
 	api.nvim_win_set_cursor(0, { erow + 1, ecol })
 end
 
+function M.visible()
+	local s = state[api.nvim_get_current_buf()]
+	return s ~= nil and s.ghost ~= nil
+end
+
 function M.accept(word)
 	local buf = api.nvim_get_current_buf()
 	local s = state[buf]
@@ -394,12 +400,17 @@ function M.setup()
 	api.nvim_create_autocmd({ 'TextChangedI', 'TextChangedP' }, {
 		group = group,
 		callback = function(ev)
-			if not enabled(ev.buf) then
-				return
+			-- A suggestion asked for by key shrinks or goes away the same way,
+			-- with :AIGhost off; only the automatic asking needs it on.
+			local s = state[ev.buf]
+			if s and (s.ghost or s.request) then
+				cancel(ev.buf)
+				typed(ev.buf)
 			end
-			cancel(ev.buf)
-			typed(ev.buf)
-			schedule(ev.buf)
+			if enabled(ev.buf) then
+				cancel(ev.buf)
+				schedule(ev.buf)
+			end
 		end,
 	})
 	api.nvim_create_autocmd('CursorMovedI', {
@@ -451,12 +462,15 @@ function M.setup()
 			api.nvim_feedkeys(vim.keycode('<M-Right>'), 'n', false)
 		end
 	end, { desc = 'Take one word of the AI suggestion' })
-	vim.keymap.set('i', '<M-\\>', function()
-		local buf = api.nvim_get_current_buf()
-		if vim.bo[buf].buftype == '' and not encrypted(buf) then
-			ask(buf)
-		end
-	end, { desc = 'Ask the AI for a suggestion now' })
+	-- Ctrl-Space asks now, :AIGhost on or off. Terminals send it as Ctrl-@.
+	for _, key in ipairs({ '<C-Space>', '<C-@>' }) do
+		vim.keymap.set('i', key, function()
+			local buf = api.nvim_get_current_buf()
+			if vim.bo[buf].buftype == '' and not encrypted(buf) then
+				ask(buf)
+			end
+		end, { desc = 'Ask the AI for a suggestion now' })
+	end
 
 	api.nvim_create_user_command('AIGhost', command, {
 		nargs = '*',

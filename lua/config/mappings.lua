@@ -19,6 +19,10 @@ function M.setup()
 		return vim.fn.pumvisible() == 1 and '<Up>' or '<Cmd>normal! gk<CR>'
 	end, { expr = true })
 	vim.keymap.set('i', '<Down>', function()
+		-- An AI suggestion showing (ghost.lua): Down takes it, like Right.
+		if require('config.ai.ghost').visible() then
+			return '<Cmd>lua require("config.ai.ghost").accept(false)<CR>'
+		end
 		return vim.fn.pumvisible() == 1 and '<Down>' or '<Cmd>normal! gj<CR>'
 	end, { expr = true })
 

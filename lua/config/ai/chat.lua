@@ -596,6 +596,29 @@ function M.open(opts)
 	map('n', '<C-c>', function()
 		M.stop(chat)
 	end)
+	-- @provider/model at the start of a message completes like :AI @…,
+	-- fuzzily after the slash. The word menu stays out of the way meanwhile.
+	api.nvim_create_autocmd('TextChangedI', {
+		buffer = buf,
+		callback = function()
+			local pos = chat.input and api.nvim_buf_get_extmark_by_id(buf, ns, chat.input, {})
+			local row, col = unpack(api.nvim_win_get_cursor(0))
+			local word = pos and pos[1] == row - 1 and api.nvim_get_current_line():sub(1, col):match('^(@%S*)$')
+			if not word then
+				if vim.b[buf].ai_model_menu then
+					vim.cmd('setlocal autocomplete<')
+					vim.b[buf].ai_model_menu = nil
+				end
+				return
+			end
+			vim.bo[buf].autocomplete = false
+			vim.b[buf].ai_model_menu = true
+			local items = require('config.ai').complete_model(word)
+			if #items > 0 then
+				vim.fn.complete(1, items)
+			end
+		end,
+	})
 	pcall(api.nvim_win_set_cursor, win, { api.nvim_buf_line_count(buf), 0 })
 	vim.cmd('startinsert')
 end

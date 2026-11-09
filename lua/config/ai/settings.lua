@@ -51,9 +51,11 @@ return {
 		global = false,
 		-- Ask after this long without typing (milliseconds).
 		delay = 4000,
-		-- Context sent: text before the cursor, and after it.
-		before_chars = 4000,
-		after_chars = 1500,
+		-- Context sent: text before the cursor, and after it (about 6000
+		-- tokens together, like :AI). When the whole file fits, every
+		-- request starts at line 1, so providers can cache that part.
+		before_chars = 16000,
+		after_chars = 8000,
 		-- Longest suggestion, in tokens.
 		max_tokens = 200,
 	},

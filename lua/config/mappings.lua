@@ -55,6 +55,18 @@ function M.setup()
 	vim.keymap.set('c', '<Down>', wild('<Right>', '<Down>'), { expr = true })
 	vim.keymap.set('c', '<Left>', wild('<Up>', '<Left>'), { expr = true })
 	vim.keymap.set('c', '<Right>', wild('<Down>', '<Right>'), { expr = true })
+	-- Enter on a selected entry takes it and stays on the command line, so
+	-- you can keep typing (:AI @model then the prompt). Enter with nothing
+	-- selected runs the command.
+	vim.keymap.set('c', '<CR>', function()
+		if vim.fn.wildmenumode() == 1 then
+			local info = vim.fn.cmdcomplete_info()
+			if info.selected ~= nil and info.selected >= 0 then
+				return '<C-Y>'
+			end
+		end
+		return '<CR>'
+	end, { expr = true })
 
 	vim.keymap.set('n', 'gS', function()
 		local ids = vim.fn.synstack(vim.fn.line('.'), vim.fn.col('.'))

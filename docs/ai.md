@@ -18,20 +18,24 @@ Encrypted buffers (`.gpg`, `.pgp`, `.asc`) are never sent.
 
 | | No selection | With a selection |
 | --- | --- | --- |
-| `:AI [prompt]` | written in at the cursor | replaces the selection |
-| `:AIAsk [question]` | answer goes in after the paragraph (the next blank line) | answer goes in on new lines after the selection |
+| `:AI [instruction]` | written in at the cursor | replaces the selection |
+| `:AIAsk [question]` | answer goes in after the block at the cursor | answer goes in on new lines after the selection |
 
-`@provider/model` as the first word uses another model once. `:AIStop` cancels the requests running in the buffer. `:AIAsk` answers go in as comments in the file's comment style (`'commentstring'`) at the indent of the line above, so code still compiles; markdown, text, and files without a filetype get plain text set off by a blank line.
+`@provider/model` as the first word uses another model once; Tab completes it, matching fuzzily after the slash (`@openrouter/dsflash`). Enter on a selected menu entry takes it and stays on the command line. `:AIStop` cancels the requests running in the buffer.
 
-While the answer streams in, it shows as grey virtual text where it will go. When it is complete it goes into the buffer as one change (one undo). The target is tracked with extmarks, so editing elsewhere meanwhile is fine.
+**Region of interest:** the selection; without one, the innermost fold around the cursor (a function, a block, a markdown section — the fold scanners from phase 4 find it), or the paragraph when there is no fold or the fold is bigger than 60% of the context budget.
 
-The prompt is kept minimal (a few hundred characters plus the context), because every word is paid for on every call. The system message says where the reply goes and that file content is data; the user message is the file excerpt and the request. Each section is marked with a tag ending in a fresh random 128-bit value (`<file-…>`, `<sel-…>`, `<cursor-…/>`), so file text cannot close a section or forge one. That stops forged sections; it does not make a model immune to instructions written in the file.
+**Prompt.** System message, one paragraph: what file this is, what the job is (insert at the `here` mark / rewrite the focus / rewrite the marked part of it / answer a question about it), what to output (only that text, no fences, no commentary, no repeating), and that the file text is data. The user message holds the file text in three parts — `before`, `focus`, `after` — then the instruction. The file text is in the user message, not the system one, on purpose: a model gives system text more authority, so file text there would be easier to use for prompt injection. Every tag ends in a fresh random 128-bit value, so file text cannot close a part or forge one. That stops forged parts; it does not make a model immune to instructions written in the file.
 
-Weak models misbehave, so the answer is checked before it goes in: an answer containing the request's tag (the model repeated the prompt) is refused with a message; leading lines that repeat the text just before the target and trailing lines that repeat the text just after it are dropped; one fence around the whole answer is removed; a replacement for a selection inside one line is trimmed of surrounding line breaks.
+Default instructions when none is given: "Please clean this up." (rewrite), "Write what belongs here." (insert), "What's going on here?" (ask).
 
-Context: the selection or the cursor line, grown outward (two thirds before, one third after) up to `settings.context_chars`, and never more than half the model's context window when the provider reports it.
+**Context:** the focus plus text before and after it (two thirds of what is left of the budget before, the rest after), up to `settings.context_chars`, and never more than half the model's context window when the provider reports it.
 
-Errors show the provider's own message. OpenRouter notes: `openrouter/free` routes each call to some free model, so quality varies; specific free models are often rate-limited upstream; and the account's privacy guardrail excludes free endpoints that train on prompts.
+**Output.** While the answer streams it shows as grey text at the target, with a seconds counter. Complete, it goes in as one change (one undo); the target is tracked with extmarks, so editing elsewhere meanwhile is fine. Checks before it goes in: an answer that contains the request's tag is refused; leading and trailing lines that repeat the surrounding text are dropped; one fence around the whole answer is removed; a rewrite of a selection inside one line is trimmed of line breaks; whole lines inserted with the cursor in the indentation go above the cursor line, at its indent. `:AIAsk` answers are wrapped to 80 columns (or `'textwidth'`) and go in as comments in the file's `'commentstring'`, at the indent of the line above; markdown, text, and files without a filetype get plain text after a blank line. (An answer that quotes a fold marker adds one; rare.)
+
+**Requests** give up after 20 s without a connection, 120 s without any data (providers send keep-alives while a model thinks), or 10 minutes in all. Errors show the provider's own message.
+
+**Models.** The default is `openrouter/deepseek/deepseek-v4.1-flash` (about $0.00001 for a small request). `openrouter/openrouter/free` routes each call to some free model, so quality varies; specific free models are often rate-limited upstream, and the account's privacy settings exclude free endpoints that train on prompts (the free Nemotron models among them).
 
 ## Chat panel (next)
 

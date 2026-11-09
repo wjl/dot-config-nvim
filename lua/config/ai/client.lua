@@ -34,7 +34,11 @@ local function quote(text)
 end
 
 local function curl(args, config, on_line, on_exit)
-	local ok, job = pcall(vim.system, vim.list_extend({ 'curl', '-sS', '-N', '-K', '-' }, args), {
+	-- Give up on a connection after 20 s, on a response that sends nothing
+	-- for 120 s (providers send keep-alive comments while a model thinks),
+	-- and on anything still going after 10 minutes.
+	local base = { 'curl', '-sS', '-N', '--connect-timeout', '20', '--speed-limit', '1', '--speed-time', '120', '--max-time', '600', '-K', '-' }
+	local ok, job = pcall(vim.system, vim.list_extend(base, args), {
 		stdin = config,
 		stdout = function(_, data)
 			if data then
@@ -141,7 +145,9 @@ function M.chat(spec, messages, cb)
 			line(pending)
 		end
 		local msg
-		if res.code ~= 0 then
+		if res.code == 28 then
+			msg = 'timed out (no answer from the provider)'
+		elseif res.code ~= 0 then
 			msg = vim.trim(res.stderr or '') ~= '' and vim.trim(res.stderr) or ('curl exited with ' .. res.code)
 		elseif #other > 0 then
 			local text = table.concat(other, '\n')

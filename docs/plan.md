@@ -208,7 +208,7 @@ Decided:
 - Persistent undo: **no**. Git keeps history; the editor should not keep extra copies of file contents, and no rule can tell which files are sensitive.
 - `smoothscroll`: **on**, to try. `mousescroll=ver:1,hor:6`: one line per wheel notch (Neovim's default is 3).
 - `<C-L>`: Neovim 0.12 already maps it to `:nohlsearch | diffupdate` and a redraw. Ours does that and then `zz`.
-- Spell: no toggle key; `:set spell` / `:set nospell` by hand. French, German, Swedish, and Spanish `.spl` files are vendored in `spell/` with their licenses (`spell/README.md`); English ships with Neovim. No `.sug` files: `z=` gave the same suggestions without them. `en,fr` together flags English hyphenated compounds, because French makes `-` a word character; `en` with `de`, `sv`, or `es` combines cleanly.
+- Spell: no toggle key; `:set spell` / `:set nospell` by hand. French, German, Swedish, and Spanish `.spl` files are vendored in `spell/` with their licenses (`spell/README.md`); English ships with Neovim. No `.sug` files: `z=` gave the same suggestions without them. French (Grammalecte 7.7 "toutes variantes") and Swedish (LibreOffice 2.42) are built by `nvim -l spell/build.lua` from pinned sources; they know current words (`selfie`, `visioconférence`, `hen`, `swisha`) that Vim's 2003-era files did not. Any pair combines cleanly, `en,fr` included.
 - Cleanups: `after/ftplugin/cpp` and `after/ftplugin/dart` only restated Neovim's `// %s`; Neovim knows `*.c++`. `*.h++` and `*.vhdlpp` moved to `vim.filetype.add` in `options.lua`, and `ftdetect/` is gone.
 
 ## Phase 8 — AI
